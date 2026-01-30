@@ -1,6 +1,61 @@
 version: '3.8'
+
 services:
+  mongodb:
+    image: mongo:7.0
+    container_name: quickcrm-mongodb
+    ports:
+      - "27017:27017"
+    environment:
+      MONGO_INITDB_DATABASE: quick-crm
+    volumes:
+      - mongodb_data:/data/db
+
   redis:
-    image: redis:alpine
+    image: redis:7-alpine
+    container_name: quickcrm-redis
     ports:
       - "6379:6379"
+    command: redis-server --appendonly yes
+    volumes:
+      - redis_data:/data
+
+  backend:
+    build:
+      context: ./backend
+      dockerfile: Dockerfile
+    container_name: quickcrm-backend
+    ports:
+      - "3000:3000"
+    environment:
+      MONGODB_URI: mongodb://mongodb:27017/quick-crm
+      REDIS_HOST: redis
+      REDIS_PORT: 6379
+      # Add your Gmail credentials in .env file
+    env_file:
+      - ./backend/.env
+    depends_on:
+      - mongodb
+      - redis
+    volumes:
+      - ./backend:/app
+      - /app/node_modules
+
+  frontend:
+    build:
+      context: ./frontend
+      dockerfile: Dockerfile
+    container_name: quickcrm-frontend
+    ports:
+      - "5173:5173"
+    environment:
+      VITE_API_URL: http://localhost:3000
+    depends_on:
+      - backend
+    volumes:
+      - ./frontend:/app
+      - /app/node_modules
+
+volumes:
+  mongodb_data:
+  redis_data:
