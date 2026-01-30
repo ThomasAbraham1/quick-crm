@@ -254,7 +254,7 @@ Contributions are welcome! Please:
 
 ## 📝 Roadmap
 
-See [`future_ideas.md`](./future_ideas.md) for planned enhancements:
+See [`FUTURE_IDEAS.md`](./FUTURE_IDEAS.md) for planned enhancements:
 
 - 🔮 **AI-Powered Data Enrichment** (Domain → CEO Name)
 - ⏸️ **Queue Dashboard** (Pause/Edit pending emails)
