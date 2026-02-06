@@ -325,14 +325,14 @@ const ContactsPage = () => {
                                             <span className="text-sm text-gray-700 whitespace-nowrap">{c.phone}</span>
                                         ) : <span className="text-gray-400 text-xs">-</span>}
                                     </td>
-                                    <td className="px-3 sm:px-6 py-3 sm:py-4">
+                                    <td className="px-3 sm:px-6 py-3 sm:py-4 whitespace-nowrap">
                                         {c.notes ? (
                                             <div className="group relative inline-block">
                                                 <span className="text-xs text-gray-700 cursor-help">
                                                     {c.notes.length > 40 ? c.notes.substring(0, 40) + '...' : c.notes}
                                                 </span>
                                                 {c.notes.length > 40 && (
-                                                    <div className="invisible group-hover:visible opacity-0 group-hover:opacity-100 transition-opacity duration-200 absolute z-50 left-0 top-full mt-2 bg-gray-900 text-white text-xs rounded-lg p-3 shadow-xl w-64 pointer-events-none">
+                                                    <div className="invisible group-hover:visible opacity-0 group-hover:opacity-100 transition-opacity duration-200 absolute z-50 left-0 top-full mt-2 bg-gray-900 text-white text-xs rounded-lg p-3 shadow-xl w-64 pointer-events-none whitespace-normal">
                                                         {c.notes}
                                                         <div className="absolute -top-1 left-4 w-2 h-2 bg-gray-900 transform rotate-45"></div>
                                                     </div>
