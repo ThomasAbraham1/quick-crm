@@ -2,7 +2,7 @@
 import React, { useEffect, useState } from 'react';
 import { Plus, Edit2, Trash2, Copy } from 'lucide-react';
 import JoditEditor from 'jodit-react';
-import axios from 'axios';
+import api from '../api';
 
 interface Template {
     _id: string;

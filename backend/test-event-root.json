@@ -1,0 +1,34 @@
+{
+    "version": "2.0",
+    "routeKey": "POST /",
+    "rawPath": "/",
+    "rawQueryString": "",
+    "cookies": [],
+    "headers": {
+        "user-agent": "PostmanRuntime/7.32.3",
+        "accept": "*/*",
+        "host": "localhost:9000",
+        "content-type": "application/json"
+    },
+    "queryStringParameters": {},
+    "requestContext": {
+        "accountId": "anonymous",
+        "apiId": "localhost",
+        "domainName": "localhost",
+        "domainPrefix": "localhost",
+        "http": {
+            "method": "POST",
+            "path": "/",
+            "protocol": "HTTP/1.1",
+            "sourceIp": "127.0.0.1",
+            "userAgent": "PostmanRuntime/7.32.3"
+        },
+        "requestId": "test-request-root",
+        "routeKey": "POST /",
+        "stage": "$default",
+        "time": "06/Feb/2026:11:00:00 +0000",
+        "timeEpoch": 1678972800000
+    },
+    "body": "{}",
+    "isBase64Encoded": false
+}

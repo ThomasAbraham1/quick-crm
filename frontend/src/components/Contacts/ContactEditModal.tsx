@@ -1,7 +1,7 @@
 
 import React, { useState, useEffect } from 'react';
 import { X, Save, User, Calendar, FileText } from 'lucide-react';
-import axios from 'axios';
+import api from '../../api';
 
 interface Contact {
     _id: string;
@@ -46,7 +46,7 @@ const ContactEditModal: React.FC<ContactEditModalProps> = ({ isOpen, onClose, co
 
     const fetchTeam = async () => {
         try {
-            const res = await axios.get('/api/team');
+            const res = await api.get('/api/team');
             setMembers(res.data);
         } catch (err) {
             console.error("Failed to fetch team", err);
@@ -57,7 +57,7 @@ const ContactEditModal: React.FC<ContactEditModalProps> = ({ isOpen, onClose, co
         if (!contact?._id) return;
         setLoading(true);
         try {
-            await axios.put(`/api/contacts/${contact._id}`, formData);
+            await api.put(`/api/contacts/${contact._id}`, formData);
             onSave();
             onClose();
         } catch (err) {

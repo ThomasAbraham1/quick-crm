@@ -1,7 +1,7 @@
 
 import React, { useState, useEffect } from 'react';
 import { X, Save, Trash2, Plus } from 'lucide-react';
-import axios from 'axios';
+import api from '../../api';
 
 interface TeamMember {
     _id: string;
@@ -27,7 +27,7 @@ const TeamManagerModal: React.FC<TeamManagerModalProps> = ({ isOpen, onClose }) 
 
     const fetchMembers = async () => {
         try {
-            const res = await axios.get('/api/team');
+            const res = await api.get('/api/team');
             setMembers(res.data);
         } catch (err) {
             console.error(err);
@@ -38,7 +38,7 @@ const TeamManagerModal: React.FC<TeamManagerModalProps> = ({ isOpen, onClose }) 
         if (!newName || !newEmail) return;
         setLoading(true);
         try {
-            await axios.post('/api/team', { name: newName, email: newEmail });
+            await api.post('/api/team', { name: newName, email: newEmail });
             setNewName('');
             setNewEmail('');
             fetchMembers();
@@ -52,7 +52,7 @@ const TeamManagerModal: React.FC<TeamManagerModalProps> = ({ isOpen, onClose }) 
     const handleDelete = async (id: string) => {
         if (!confirm('Remove this team member?')) return;
         try {
-            await axios.delete(`/api/team/${id}`);
+            await api.delete(`/api/team/${id}`);
             fetchMembers();
         } catch (err) {
             alert('Failed to delete member');

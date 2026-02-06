@@ -8,6 +8,9 @@ import { ContactsModule } from './contacts/contacts.module';
 import { CampaignsModule } from './campaigns/campaigns.module';
 import { TeamModule } from './team/team.module';
 
+import { AppController } from './app.controller';
+import { AppService } from './app.service';
+
 @Module({
     imports: [
         ConfigModule.forRoot({
@@ -26,5 +29,7 @@ import { TeamModule } from './team/team.module';
         CampaignsModule,
         TeamModule
     ],
+    controllers: [AppController],
+    providers: [AppService],
 })
 export class AppModule { }

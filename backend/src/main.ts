@@ -1,7 +1,7 @@
 
 import { NestFactory } from '@nestjs/core';
 import { AppModule } from './app.module';
-import serverlessExpress from '@codegenie/serverless-express';
+import { configure } from '@codegenie/serverless-express';
 import { Callback, Context, Handler } from 'aws-lambda';
 
 let server: Handler;
@@ -13,7 +13,7 @@ async function bootstrap() {
         await app.init();
 
         const expressApp = app.getHttpAdapter().getInstance();
-        return serverlessExpress({ app: expressApp });
+        return configure({ app: expressApp });
     } catch (error) {
         console.error('SERVER BOOTSTRAP FAILED:', error);
         throw error;

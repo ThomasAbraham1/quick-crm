@@ -1,0 +1,33 @@
+{
+    "version": "2.0",
+    "routeKey": "GET /contacts",
+    "rawPath": "/contacts",
+    "rawQueryString": "",
+    "cookies": [],
+    "headers": {
+        "user-agent": "PostmanRuntime/7.32.3",
+        "accept": "*/*",
+        "host": "localhost:9000"
+    },
+    "queryStringParameters": {},
+    "requestContext": {
+        "accountId": "anonymous",
+        "apiId": "localhost",
+        "domainName": "localhost",
+        "domainPrefix": "localhost",
+        "http": {
+            "method": "GET",
+            "path": "/contacts",
+            "protocol": "HTTP/1.1",
+            "sourceIp": "127.0.0.1",
+            "userAgent": "PostmanRuntime/7.32.3"
+        },
+        "requestId": "test-request-2",
+        "routeKey": "GET /contacts",
+        "stage": "$default",
+        "time": "06/Feb/2026:11:00:00 +0000",
+        "timeEpoch": 1678972800000
+    },
+    "body": "",
+    "isBase64Encoded": false
+}

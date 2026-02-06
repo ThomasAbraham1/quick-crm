@@ -1,6 +1,6 @@
 import React, { useEffect, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
-import axios from 'axios';
+import api from '../api';
 import { BarChart3, Mail, Eye, TrendingUp } from 'lucide-react';
 
 interface Campaign {
@@ -25,7 +25,7 @@ const CampaignsPage = () => {
 
     const fetchCampaigns = async () => {
         try {
-            const res = await axios.get('/api/campaigns');
+            const res = await api.get('/api/campaigns');
             setCampaigns(res.data);
         } catch (err) {
             console.error('Error fetching campaigns:', err);
@@ -71,8 +71,8 @@ const CampaignsPage = () => {
                                         <p className="text-xs text-gray-500">{new Date(campaign.createdAt).toLocaleString()}</p>
                                     </div>
                                     <span className={`px-3 py-1 rounded-full text-xs font-semibold ${campaign.status === 'completed'
-                                            ? 'bg-green-100 text-green-700'
-                                            : 'bg-yellow-100 text-yellow-700'
+                                        ? 'bg-green-100 text-green-700'
+                                        : 'bg-yellow-100 text-yellow-700'
                                         }`}>
                                         {campaign.status === 'running' ? '🔄 Running' : '✅ Done'}
                                     </span>

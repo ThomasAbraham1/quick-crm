@@ -1,6 +1,6 @@
 import React, { useEffect, useState } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
-import axios from 'axios';
+import api from '../api';
 import { ArrowLeft, Mail, Eye, XCircle, Clock } from 'lucide-react';
 
 interface Campaign {
@@ -13,7 +13,7 @@ interface Campaign {
     failedCount: number;
     status: string;
     createdAt: string;
-} 
+}
 
 const CampaignDetail = () => {
     const { id } = useParams();
@@ -32,7 +32,7 @@ const CampaignDetail = () => {
 
     const fetchCampaign = async () => {
         try {
-            const res = await axios.get(`/api/campaigns/${id}`);
+            const res = await api.get(`/api/campaigns/${id}`);
             setCampaign(res.data);
             setLoading(false);
         } catch (err) {
@@ -131,8 +131,8 @@ const CampaignDetail = () => {
             <div className="flex items-center gap-2">
                 <span className="text-sm text-gray-600">Status:</span>
                 <span className={`px-3 py-1 rounded-full text-xs font-semibold ${campaign.status === 'completed'
-                        ? 'bg-green-100 text-green-700'
-                        : 'bg-yellow-100 text-yellow-700'
+                    ? 'bg-green-100 text-green-700'
+                    : 'bg-yellow-100 text-yellow-700'
                     }`}>
                     {campaign.status === 'running' ? '🔄 Running' : '✅ Completed'}
                 </span>

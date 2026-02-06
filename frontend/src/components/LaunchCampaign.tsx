@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import axios from 'axios';
+import api from '../api';
 import { AlertTriangle, Send } from 'lucide-react';
 
 const LaunchCampaign = () => {
@@ -44,7 +44,7 @@ const LaunchCampaign = () => {
                 return;
             }
 
-            const res = await axios.post('/api/mail/check-campaign', {
+            const res = await api.post('/api/mail/check-campaign', {
                 templateId,
                 contacts: polishedContacts
             });
@@ -80,7 +80,7 @@ const LaunchCampaign = () => {
                 name: c.name?.trim()
             })) : [];
             // console.log(polishedContacts, templateId, force)
-            const res = await axios.post('/api/mail/launch', {
+            const res = await api.post('/api/mail/launch', {
                 templateId,
                 contacts: polishedContacts,
                 force
@@ -102,7 +102,7 @@ const LaunchCampaign = () => {
 
     const createTestTemplate = async () => {
         try {
-            const res = await axios.post('/api/mail/template', {
+            const res = await api.post('/api/mail/template', {
                 subject: "Hello {{name}}",
                 body: "This is a test email for {{name}}."
             });

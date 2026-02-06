@@ -1,7 +1,7 @@
 
 import React, { useEffect, useState, useMemo } from 'react';
 import { Upload, Trash2, Copy, Filter, Calendar, Edit, Users, User, CheckCircle, Search } from 'lucide-react';
-import axios from 'axios';
+import api from '../api';
 import ContactEditModal from '../components/Contacts/ContactEditModal';
 import TeamManagerModal from '../components/Team/TeamManagerModal';
 
@@ -48,13 +48,13 @@ const ContactsPage = () => {
     }, []);
 
     const fetchContacts = async () => {
-        const res = await axios.get('/api/contacts');
+        const res = await api.get('/api/contacts');
         setContacts(res.data);
     };
 
     const fetchTeam = async () => {
         try {
-            const res = await axios.get('/api/team');
+            const res = await api.get('/api/team');
             setTeamMembers(res.data);
         } catch (e) { console.error(e); }
     };
@@ -126,7 +126,7 @@ const ContactsPage = () => {
         try {
             const parsed = JSON.parse(jsonInput);
             if (!Array.isArray(parsed)) throw new Error('Must be an array');
-            await axios.post('/api/contacts/import', { contacts: parsed });
+            await api.post('/api/contacts/import', { contacts: parsed });
             setIsImporting(false);
             setJsonInput('');
             fetchContacts();
@@ -137,7 +137,7 @@ const ContactsPage = () => {
 
     const handleDelete = async (id: string) => {
         if (!confirm('Are you sure?')) return;
-        await axios.delete(`/api/contacts/${id}`);
+        await api.delete(`/api/contacts/${id}`);
         fetchContacts();
     }
 
@@ -155,7 +155,7 @@ const ContactsPage = () => {
     const handleBulkDelete = async () => {
         if (!confirm(`Delete ${selectedIds.size} contacts?`)) return;
         for (const id of selectedIds) {
-            await axios.delete(`/api/contacts/${id}`);
+            await api.delete(`/api/contacts/${id}`);
         }
         setSelectedIds(new Set());
         fetchContacts();
