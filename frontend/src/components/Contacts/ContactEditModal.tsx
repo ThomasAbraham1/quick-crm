@@ -46,7 +46,7 @@ const ContactEditModal: React.FC<ContactEditModalProps> = ({ isOpen, onClose, co
 
     const fetchTeam = async () => {
         try {
-            const res = await api.get('/api/team');
+            const res = await api.get('team');
             setMembers(res.data);
         } catch (err) {
             console.error("Failed to fetch team", err);

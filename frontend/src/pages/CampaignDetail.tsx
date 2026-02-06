@@ -32,7 +32,7 @@ const CampaignDetail = () => {
 
     const fetchCampaign = async () => {
         try {
-            const res = await api.get(`/api/campaigns/${id}`);
+            const res = await api.get(`campaigns/${id}`);
             setCampaign(res.data);
             setLoading(false);
         } catch (err) {

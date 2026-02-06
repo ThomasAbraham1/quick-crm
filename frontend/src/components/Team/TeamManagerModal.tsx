@@ -27,7 +27,7 @@ const TeamManagerModal: React.FC<TeamManagerModalProps> = ({ isOpen, onClose }) 
 
     const fetchMembers = async () => {
         try {
-            const res = await api.get('/api/team');
+            const res = await api.get('team');
             setMembers(res.data);
         } catch (err) {
             console.error(err);
@@ -38,7 +38,7 @@ const TeamManagerModal: React.FC<TeamManagerModalProps> = ({ isOpen, onClose }) 
         if (!newName || !newEmail) return;
         setLoading(true);
         try {
-            await api.post('/api/team', { name: newName, email: newEmail });
+            await api.post('team', { name: newName, email: newEmail });
             setNewName('');
             setNewEmail('');
             fetchMembers();

@@ -48,13 +48,13 @@ const ContactsPage = () => {
     }, []);
 
     const fetchContacts = async () => {
-        const res = await api.get('/api/contacts');
+        const res = await api.get('contacts');
         setContacts(res.data);
     };
 
     const fetchTeam = async () => {
         try {
-            const res = await api.get('/api/team');
+            const res = await api.get('team');
             setTeamMembers(res.data);
         } catch (e) { console.error(e); }
     };
@@ -126,7 +126,7 @@ const ContactsPage = () => {
         try {
             const parsed = JSON.parse(jsonInput);
             if (!Array.isArray(parsed)) throw new Error('Must be an array');
-            await api.post('/api/contacts/import', { contacts: parsed });
+            await api.post('contacts/import', { contacts: parsed });
             setIsImporting(false);
             setJsonInput('');
             fetchContacts();

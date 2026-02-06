@@ -20,15 +20,15 @@ const TemplatesPage = () => {
     }, []);
 
     const fetchTemplates = async () => {
-        const res = await axios.get('/api/templates');
+        const res = await api.get('templates');
         setTemplates(res.data);
     };
 
     const handleSave = async () => {
         if (currentTemplate._id) {
-            await axios.put(`/api/templates/${currentTemplate._id}`, currentTemplate);
+            await api.put(`/templates/${currentTemplate._id}`, currentTemplate);
         } else {
-            await axios.post('/api/templates', currentTemplate);
+            await api.post('templates', currentTemplate);
         }
         setIsEditing(false);
         setCurrentTemplate({});
@@ -37,7 +37,7 @@ const TemplatesPage = () => {
 
     const handleDelete = async (id: string) => {
         if (!confirm('Are you sure?')) return;
-        await axios.delete(`/api/templates/${id}`);
+        await api.delete(`/api/templates/${id}`);
         fetchTemplates();
     }
 
