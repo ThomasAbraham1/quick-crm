@@ -21,6 +21,11 @@ export class ContactsController {
         return this.contactsService.findAll();
     }
 
+    @Put('bulk-assign')
+    bulkAssign(@Body() body: { contactIds: string[]; assignee: string }) {
+        return this.contactsService.bulkAssign(body.contactIds, body.assignee);
+    }
+
     @Put(':id')
     update(@Param('id') id: string, @Body() updateData: any) {
         return this.contactsService.update(id, updateData);
@@ -29,10 +34,5 @@ export class ContactsController {
     @Delete(':id')
     delete(@Param('id') id: string) {
         return this.contactsService.delete(id);
-    }
-
-    @Put('bulk-assign')
-    bulkAssign(@Body() body: { contactIds: string[]; assignee: string }) {
-        return this.contactsService.bulkAssign(body.contactIds, body.assignee);
     }
 }
