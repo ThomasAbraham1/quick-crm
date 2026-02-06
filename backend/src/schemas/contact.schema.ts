@@ -19,7 +19,7 @@ export class Contact {
     phone: string;
 
     @Prop({ type: Object })
-    otherInfo: Record<string, any>;
+    misc: Record<string, any>;
 
     @Prop()
     notes: string;

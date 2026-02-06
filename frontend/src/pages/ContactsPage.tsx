@@ -297,9 +297,10 @@ const ContactsPage = () => {
                                 />
                             </th>
                             <th className="px-6 py-4 text-xs font-semibold text-gray-500 uppercase">Contact</th>
-                            <th className="px-6 py-4 text-xs font-semibold text-gray-500 uppercase">Status</th>
-                            <th className="px-6 py-4 text-xs font-semibold text-gray-500 uppercase">Assignee</th>
-                            <th className="px-6 py-4 text-xs font-semibold text-gray-500 uppercase">Callback</th>
+                            <th className="px-6 py-4 text-xs font-semibold text-gray-500 uppercase hidden md:table-cell">Phone</th>
+                            <th className="px-6 py-4 text-xs font-semibold text-gray-500 uppercase">Notes</th>
+                            <th className="px-6 py-4 text-xs font-semibold text-gray-500 uppercase hidden lg:table-cell">Assignee</th>
+                            <th className="px-6 py-4 text-xs font-semibold text-gray-500 uppercase hidden lg:table-cell">Callback</th>
                             <th className="px-6 py-4 text-xs font-semibold text-gray-500 uppercase text-right">Actions</th>
                         </tr>
                     </thead>
@@ -317,6 +318,11 @@ const ContactsPage = () => {
                                     <div className="font-medium text-sm text-gray-900">{c.name || 'Unknown'}</div>
                                     <div className="text-xs text-gray-500">{c.email}</div>
                                 </td>
+                                <td className="px-6 py-4 hidden md:table-cell">
+                                    {c.phone ? (
+                                        <span className="text-sm text-gray-700">{c.phone}</span>
+                                    ) : <span className="text-gray-400 text-xs">-</span>}
+                                </td>
                                 <td className="px-6 py-4">
                                     {c.notes ? (
                                         <div className="group relative inline-block">
@@ -332,7 +338,7 @@ const ContactsPage = () => {
                                         </div>
                                     ) : <span className="text-gray-400 text-xs">-</span>}
                                 </td>
-                                <td className="px-6 py-4">
+                                <td className="px-6 py-4 hidden lg:table-cell">
                                     {c.assignee ? (
                                         <div className="flex items-center gap-1.5">
                                             <div className="w-5 h-5 rounded-full bg-indigo-100 text-indigo-700 flex items-center justify-center text-[10px] font-bold">
@@ -344,7 +350,7 @@ const ContactsPage = () => {
                                         <span className="text-xs text-gray-400 italic">Unassigned</span>
                                     )}
                                 </td>
-                                <td className="px-6 py-4">
+                                <td className="px-6 py-4 hidden lg:table-cell">
                                     {c.callbackDate ? (
                                         <span className={`text-xs font-medium px-2 py-1 rounded-full ${new Date(c.callbackDate) < new Date() ? 'bg-red-50 text-red-600' : 'bg-blue-50 text-blue-600'
                                             }`}>

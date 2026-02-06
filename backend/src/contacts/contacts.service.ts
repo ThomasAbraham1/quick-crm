@@ -19,17 +19,27 @@ export class ContactsService {
 
     async bulkCreate(contactsData: any[]) {
         const operations = contactsData.map(c => {
-            const { email, name, phone, ...others } = c;
+            // Known fields
+            const { email, name, phone, notes, assignee, callbackDate, ...misc } = c;
+
+            const updateData: any = { email, name };
+
+            // Add optional known fields if present
+            if (phone) updateData.phone = phone;
+            if (notes) updateData.notes = notes;
+            if (assignee) updateData.assignee = assignee;
+            if (callbackDate) updateData.callbackDate = new Date(callbackDate);
+
+            // Store extra fields in misc
+            if (Object.keys(misc).length > 0) {
+                updateData.misc = misc;
+            }
+
             return {
                 updateOne: {
                     filter: { email: email },
                     update: {
-                        $set: {
-                            email,
-                            name,
-                            phone,
-                            otherInfo: others
-                        },
+                        $set: updateData,
                         $setOnInsert: { dateAdded: new Date() }
                     },
                     upsert: true
