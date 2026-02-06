@@ -1,0 +1,15 @@
+{
+    "AllowOrigins": [
+        "https://quick-crm.onrender.com"
+    ],
+    "AllowMethods": [
+        "GET",
+        "POST",
+        "PUT",
+        "DELETE"
+    ],
+    "AllowHeaders": [
+        "*"
+    ],
+    "MaxAge": 86400
+}
