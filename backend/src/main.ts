@@ -10,11 +10,8 @@ async function bootstrap() {
     try {
         const app = await NestFactory.create(AppModule, { logger: ['error', 'warn', 'log'] });
 
-        // Configure CORS to work with AWS Lambda Function URL
-        app.enableCors({
-            origin: true, // Reflect the request origin (works with Lambda Function URL)
-            credentials: true,
-        });
+        // Do NOT enable CORS here for Lambda - AWS Lambda Function URL handles it
+        // This prevents duplicate CORS headers
 
         await app.init();
 
