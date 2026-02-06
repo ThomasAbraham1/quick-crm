@@ -9,7 +9,13 @@ let server: Handler;
 async function bootstrap() {
     try {
         const app = await NestFactory.create(AppModule, { logger: ['error', 'warn', 'log'] });
-        app.enableCors();
+
+        // Configure CORS to work with AWS Lambda Function URL
+        app.enableCors({
+            origin: true, // Reflect the request origin (works with Lambda Function URL)
+            credentials: true,
+        });
+
         await app.init();
 
         const expressApp = app.getHttpAdapter().getInstance();
