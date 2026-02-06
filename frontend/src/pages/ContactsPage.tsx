@@ -155,7 +155,7 @@ const ContactsPage = () => {
     const handleBulkDelete = async () => {
         if (!confirm(`Delete ${selectedIds.size} contacts?`)) return;
         for (const id of selectedIds) {
-            await api.delete(`/api/contacts/${id}`);
+            await api.delete(`contacts/${id}`);
         }
         setSelectedIds(new Set());
         fetchContacts();
