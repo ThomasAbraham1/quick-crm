@@ -30,4 +30,9 @@ export class ContactsController {
     delete(@Param('id') id: string) {
         return this.contactsService.delete(id);
     }
+
+    @Put('bulk-assign')
+    bulkAssign(@Body() body: { contactIds: string[]; assignee: string }) {
+        return this.contactsService.bulkAssign(body.contactIds, body.assignee);
+    }
 }

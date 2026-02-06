@@ -1,6 +1,6 @@
 
 import React, { useEffect, useState, useMemo } from 'react';
-import { Upload, Trash2, Copy, Filter, Calendar, Edit, Users, User, CheckCircle, Search } from 'lucide-react';
+import { Upload, Trash2, Copy, Filter, Calendar, Edit, Users, User, CheckCircle, Search, Info, UserPlus } from 'lucide-react';
 import api from '../api';
 import ContactEditModal from '../components/Contacts/ContactEditModal';
 import TeamManagerModal from '../components/Team/TeamManagerModal';
@@ -14,6 +14,7 @@ interface Contact {
     assignee?: string;
     callbackDate?: string;
     notes?: string;
+    misc?: Record<string, any>;
 }
 
 interface TeamMember {
@@ -161,6 +162,21 @@ const ContactsPage = () => {
         fetchContacts();
     }
 
+    const handleBulkAssign = async (assignee: string) => {
+        if (!assignee) return;
+        try {
+            await api.put('contacts/bulk-assign', {
+                contactIds: Array.from(selectedIds),
+                assignee
+            });
+            setSelectedIds(new Set());
+            fetchContacts();
+        } catch (e) {
+            console.error('Bulk assign failed:', e);
+            alert('Failed to assign contacts');
+        }
+    }
+
     const handleCopyFilteredDocs = () => {
         const exportData = filteredContacts.map(c => ({
             name: c.name,
@@ -260,7 +276,24 @@ const ContactsPage = () => {
                     {/* Actions - Aligned right on desktop */}
                     <div className="col-span-2 sm:col-span-1 lg:flex-1 flex justify-end">
                         {selectedIds.size > 0 && (
-                            <div className="flex gap-3 justify-end w-full lg:w-auto">
+                            <div className="flex gap-3 justify-end w-full lg:w-auto items-center">
+                                <div className="flex items-center gap-2">
+                                    <UserPlus size={14} className="text-blue-600" />
+                                    <select
+                                        className="text-sm text-blue-600 bg-transparent border border-blue-200 rounded px-2 py-1 hover:bg-blue-50 outline-none"
+                                        onChange={(e) => {
+                                            if (e.target.value) {
+                                                handleBulkAssign(e.target.value);
+                                                e.target.value = ''; // Reset
+                                            }
+                                        }}
+                                    >
+                                        <option value="">Assign ({selectedIds.size})</option>
+                                        {teamMembers.map(m => (
+                                            <option key={m._id} value={m._id}>{m.name}</option>
+                                        ))}
+                                    </select>
+                                </div>
                                 <button onClick={handleBulkDelete} className="text-red-600 text-sm hover:underline flex items-center gap-1">
                                     <Trash2 size={14} /> Delete ({selectedIds.size})
                                 </button>
@@ -366,6 +399,25 @@ const ContactsPage = () => {
                                     </td>
                                     <td className="px-3 sm:px-6 py-3 sm:py-4 text-right">
                                         <div className="flex justify-end gap-2 text-gray-400">
+                                            {c.misc && Object.keys(c.misc).length > 0 && (
+                                                <div className="group relative inline-block">
+                                                    <button className="hover:text-indigo-600 transition">
+                                                        <Info size={16} />
+                                                    </button>
+                                                    <div className="invisible group-hover:visible opacity-0 group-hover:opacity-100 transition-opacity duration-200 absolute z-50 right-0 top-full mt-2 bg-gray-900 text-white text-xs rounded-lg p-3 shadow-xl w-56 pointer-events-none">
+                                                        <div className="font-semibold mb-2 text-indigo-300">Additional Info</div>
+                                                        <div className="space-y-1">
+                                                            {Object.entries(c.misc).map(([key, value]) => (
+                                                                <div key={key} className="flex justify-between gap-2">
+                                                                    <span className="text-gray-400 capitalize">{key}:</span>
+                                                                    <span className="text-white font-medium">{String(value)}</span>
+                                                                </div>
+                                                            ))}
+                                                        </div>
+                                                        <div className="absolute -top-1 right-4 w-2 h-2 bg-gray-900 transform rotate-45"></div>
+                                                    </div>
+                                                </div>
+                                            )}
                                             <button onClick={() => handleEdit(c)} className="hover:text-blue-600 transition">
                                                 <Edit size={16} />
                                             </button>

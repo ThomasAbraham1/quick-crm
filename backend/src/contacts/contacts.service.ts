@@ -56,4 +56,11 @@ export class ContactsService {
     async delete(id: string) {
         return this.contactModel.findByIdAndDelete(id);
     }
+
+    async bulkAssign(contactIds: string[], assignee: string) {
+        return this.contactModel.updateMany(
+            { _id: { $in: contactIds } },
+            { $set: { assignee } }
+        );
+    }
 }
