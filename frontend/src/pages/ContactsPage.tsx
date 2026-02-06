@@ -285,101 +285,106 @@ const ContactsPage = () => {
                 </div>
             )}
 
+            {/* Table */}
             <div className="bg-white rounded-xl border border-gray-100 shadow-sm overflow-hidden">
-                <table className="w-full text-left">
-                    <thead className="bg-gray-50 border-b border-gray-100">
-                        <tr>
-                            <th className="px-6 py-4 w-10">
-                                <input
-                                    type="checkbox"
-                                    checked={filteredContacts.length > 0 && selectedIds.size === filteredContacts.length}
-                                    onChange={toggleSelectAll}
-                                />
-                            </th>
-                            <th className="px-6 py-4 text-xs font-semibold text-gray-500 uppercase">Contact</th>
-                            <th className="px-6 py-4 text-xs font-semibold text-gray-500 uppercase hidden md:table-cell">Phone</th>
-                            <th className="px-6 py-4 text-xs font-semibold text-gray-500 uppercase">Notes</th>
-                            <th className="px-6 py-4 text-xs font-semibold text-gray-500 uppercase hidden lg:table-cell">Assignee</th>
-                            <th className="px-6 py-4 text-xs font-semibold text-gray-500 uppercase hidden lg:table-cell">Callback</th>
-                            <th className="px-6 py-4 text-xs font-semibold text-gray-500 uppercase text-right">Actions</th>
-                        </tr>
-                    </thead>
-                    <tbody className="divide-y divide-gray-50">
-                        {filteredContacts.map(c => (
-                            <tr key={c._id} className={`hover:bg-gray-50/50 transition ${selectedIds.has(c._id) ? 'bg-blue-50/30' : ''}`}>
-                                <td className="px-6 py-4">
+                <div className="overflow-x-auto">
+                    <table className="w-full text-left">
+                        <thead className="bg-gray-50 border-b border-gray-100">
+                            <tr>
+                                <th className="px-3 sm:px-6 py-3 sm:py-4 w-10">
                                     <input
                                         type="checkbox"
-                                        checked={selectedIds.has(c._id)}
-                                        onChange={() => toggleSelect(c._id)}
+                                        checked={filteredContacts.length > 0 && selectedIds.size === filteredContacts.length}
+                                        onChange={toggleSelectAll}
                                     />
-                                </td>
-                                <td className="px-6 py-4">
-                                    <div className="font-medium text-sm text-gray-900">{c.name || 'Unknown'}</div>
-                                    <div className="text-xs text-gray-500">{c.email}</div>
-                                </td>
-                                <td className="px-6 py-4 hidden md:table-cell">
-                                    {c.phone ? (
-                                        <span className="text-sm text-gray-700">{c.phone}</span>
-                                    ) : <span className="text-gray-400 text-xs">-</span>}
-                                </td>
-                                <td className="px-6 py-4">
-                                    {c.notes ? (
-                                        <div className="group relative inline-block">
-                                            <span className="text-xs text-gray-700 cursor-help">
-                                                {c.notes.length > 40 ? c.notes.substring(0, 40) + '...' : c.notes}
-                                            </span>
-                                            {c.notes.length > 40 && (
-                                                <div className="invisible group-hover:visible opacity-0 group-hover:opacity-100 transition-opacity duration-200 absolute z-50 left-0 top-full mt-2 bg-gray-900 text-white text-xs rounded-lg p-3 shadow-xl w-64 pointer-events-none">
-                                                    {c.notes}
-                                                    <div className="absolute -top-1 left-4 w-2 h-2 bg-gray-900 transform rotate-45"></div>
-                                                </div>
-                                            )}
-                                        </div>
-                                    ) : <span className="text-gray-400 text-xs">-</span>}
-                                </td>
-                                <td className="px-6 py-4 hidden lg:table-cell">
-                                    {c.assignee ? (
-                                        <div className="flex items-center gap-1.5">
-                                            <div className="w-5 h-5 rounded-full bg-indigo-100 text-indigo-700 flex items-center justify-center text-[10px] font-bold">
-                                                {getAssigneeName(c.assignee)?.charAt(0)}
+                                </th>
+                                <th className="px-3 sm:px-6 py-3 sm:py-4 text-xs font-semibold text-gray-500 uppercase whitespace-nowrap">Contact</th>
+                                <th className="px-3 sm:px-6 py-3 sm:py-4 text-xs font-semibold text-gray-500 uppercase whitespace-nowrap hidden md:table-cell">Phone</th>
+                                <th className="px-3 sm:px-6 py-3 sm:py-4 text-xs font-semibold text-gray-500 uppercase whitespace-nowrap">Notes</th>
+                                <th className="px-3 sm:px-6 py-3 sm:py-4 text-xs font-semibold text-gray-500 uppercase whitespace-nowrap hidden lg:table-cell">Assignee</th>
+                                <th className="px-3 sm:px-6 py-3 sm:py-4 text-xs font-semibold text-gray-500 uppercase whitespace-nowrap hidden lg:table-cell">Callback</th>
+                                <th className="px-3 sm:px-6 py-3 sm:py-4 text-xs font-semibold text-gray-500 uppercase text-right whitespace-nowrap">Actions</th>
+                            </tr>
+                        </thead>
+                        <tbody className="divide-y divide-gray-50">
+                            {filteredContacts.map(c => (
+                                <tr key={c._id} className={`hover:bg-gray-50/50 transition ${selectedIds.has(c._id) ? 'bg-blue-50/30' : ''}`}>
+                                    <td className="px-3 sm:px-6 py-3 sm:py-4">
+                                        <input
+                                            type="checkbox"
+                                            checked={selectedIds.has(c._id)}
+                                            onChange={() => toggleSelect(c._id)}
+                                        />
+                                    </td>
+                                    <td className="px-3 sm:px-6 py-3 sm:py-4">
+                                        <div className="font-medium text-sm text-gray-900 whitespace-nowrap">{c.name || 'Unknown'}</div>
+                                        <div className="text-xs text-gray-500 truncate max-w-[200px]">{c.email}</div>
+                                    </td>
+                                    <td className="px-3 sm:px-6 py-3 sm:py-4 hidden md:table-cell">
+                                        {c.phone ? (
+                                            <span className="text-sm text-gray-700 whitespace-nowrap">{c.phone}</span>
+                                        ) : <span className="text-gray-400 text-xs">-</span>}
+                                    </td>
+                                    <td className="px-3 sm:px-6 py-3 sm:py-4">
+                                        {c.notes ? (
+                                            <div className="group relative inline-block">
+                                                <span className="text-xs text-gray-700 cursor-help">
+                                                    {c.notes.length > 40 ? c.notes.substring(0, 40) + '...' : c.notes}
+                                                </span>
+                                                {c.notes.length > 40 && (
+                                                    <div className="invisible group-hover:visible opacity-0 group-hover:opacity-100 transition-opacity duration-200 absolute z-50 left-0 top-full mt-2 bg-gray-900 text-white text-xs rounded-lg p-3 shadow-xl w-64 pointer-events-none">
+                                                        {c.notes}
+                                                        <div className="absolute -top-1 left-4 w-2 h-2 bg-gray-900 transform rotate-45"></div>
+                                                    </div>
+                                                )}
                                             </div>
-                                            <span className="text-sm text-gray-700">{getAssigneeName(c.assignee)}</span>
+                                        ) : <span className="text-gray-400 text-xs">-</span>}
+                                    </td>
+                                    <td className="px-3 sm:px-6 py-3 sm:py-4 hidden lg:table-cell">
+                                        {c.assignee ? (
+                                            <div className="flex items-center gap-1.5">
+                                                <div className="w-5 h-5 rounded-full bg-indigo-100 text-indigo-700 flex items-center justify-center text-[10px] font-bold">
+                                                    {getAssigneeName(c.assignee)?.charAt(0)}
+                                                </div>
+                                                <span className="text-sm text-gray-700 whitespace-nowrap">{getAssigneeName(c.assignee)}</span>
+                                            </div>
+                                        ) : (
+                                            <span className="text-xs text-gray-400 italic">Unassigned</span>
+                                        )}
+                                    </td>
+                                    <td className="px-3 sm:px-6 py-3 sm:py-4 hidden lg:table-cell">
+                                        {c.callbackDate ? (
+                                            <span className={`text-xs font-medium px-2 py-1 rounded-full whitespace-nowrap ${new Date(c.callbackDate) < new Date() ? 'bg-red-50 text-red-600' : 'bg-blue-50 text-blue-600'
+                                                }`}>
+                                                {new Date(c.callbackDate).toLocaleDateString()}
+                                            </span>
+                                        ) : '-'}
+                                    </td>
+                                    <td className="px-3 sm:px-6 py-3 sm:py-4 text-right">
+                                        <div className="flex justify-end gap-2 text-gray-400">
+                                            <button onClick={() => handleEdit(c)} className="hover:text-blue-600 transition">
+                                                <Edit size={16} />
+                                            </button>
+                                            <button onClick={() => handleDelete(c._id)} className="hover:text-red-500 transition">
+                                                <Trash2 size={16} />
+                                            </button>
                                         </div>
-                                    ) : (
-                                        <span className="text-xs text-gray-400 italic">Unassigned</span>
-                                    )}
-                                </td>
-                                <td className="px-6 py-4 hidden lg:table-cell">
-                                    {c.callbackDate ? (
-                                        <span className={`text-xs font-medium px-2 py-1 rounded-full ${new Date(c.callbackDate) < new Date() ? 'bg-red-50 text-red-600' : 'bg-blue-50 text-blue-600'
-                                            }`}>
-                                            {new Date(c.callbackDate).toLocaleDateString()}
-                                        </span>
-                                    ) : '-'}
-                                </td>
-                                <td className="px-6 py-4 text-right flex justify-end gap-2 text-gray-400">
-                                    <button onClick={() => handleEdit(c)} className="hover:text-blue-600 transition">
-                                        <Edit size={16} />
-                                    </button>
-                                    <button onClick={() => handleDelete(c._id)} className="hover:text-red-500 transition">
-                                        <Trash2 size={16} />
-                                    </button>
-                                </td>
-                            </tr>
-                        ))}
-                        {filteredContacts.length === 0 && (
-                            <tr>
-                                <td colSpan={6} className="px-6 py-12 text-center text-gray-400">
-                                    <div className="flex flex-col items-center gap-2">
-                                        <Filter size={24} className="opacity-20" />
-                                        <p className="text-sm">No contacts found matching your filters.</p>
-                                    </div>
-                                </td>
-                            </tr>
-                        )}
-                    </tbody>
-                </table>
+                                    </td>
+                                </tr>
+                            ))}
+                            {filteredContacts.length === 0 && (
+                                <tr>
+                                    <td colSpan={7} className="px-6 py-12 text-center text-gray-400">
+                                        <div className="flex flex-col items-center gap-2">
+                                            <Filter size={24} className="opacity-20" />
+                                            <p className="text-sm">No contacts found matching your filters.</p>
+                                        </div>
+                                    </td>
+                                </tr>
+                            )}
+                        </tbody>
+                    </table>
+                </div>
             </div>
 
             <ContactEditModal
