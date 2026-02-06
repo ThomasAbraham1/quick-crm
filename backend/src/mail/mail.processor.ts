@@ -110,7 +110,6 @@ export class MailProcessor extends WorkerHost {
             if (campaignId) {
                 await this.campaignsService.incrementFailed(campaignId);
             }
-
             throw error; // Let BullMQ handle retry
         }
     }

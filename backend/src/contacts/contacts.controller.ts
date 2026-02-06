@@ -1,5 +1,5 @@
 
-import { Controller, Get, Post, Body, Delete, Param } from '@nestjs/common';
+import { Controller, Get, Post, Put, Body, Delete, Param } from '@nestjs/common';
 import { ContactsService } from './contacts.service';
 
 @Controller('contacts')
@@ -19,6 +19,11 @@ export class ContactsController {
     @Get()
     findAll() {
         return this.contactsService.findAll();
+    }
+
+    @Put(':id')
+    update(@Param('id') id: string, @Body() updateData: any) {
+        return this.contactsService.update(id, updateData);
     }
 
     @Delete(':id')

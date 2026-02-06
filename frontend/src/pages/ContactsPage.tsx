@@ -1,6 +1,9 @@
+
 import React, { useEffect, useState, useMemo } from 'react';
-import { Upload, Plus, Trash2, Copy, Filter, Calendar } from 'lucide-react';
+import { Upload, Trash2, Copy, Filter, Calendar, Edit, Users, User, CheckCircle, Search } from 'lucide-react';
 import axios from 'axios';
+import ContactEditModal from '../components/Contacts/ContactEditModal';
+import TeamManagerModal from '../components/Team/TeamManagerModal';
 
 interface Contact {
     _id: string;
@@ -8,19 +11,40 @@ interface Contact {
     name: string;
     phone?: string;
     dateAdded?: string;
+    assignee?: string;
+    callbackDate?: string;
+    notes?: string;
+}
+
+interface TeamMember {
+    _id: string;
+    name: string;
 }
 
 const ContactsPage = () => {
     const [contacts, setContacts] = useState<Contact[]>([]);
+    const [teamMembers, setTeamMembers] = useState<TeamMember[]>([]);
+
+    // Modals
+    const [isEditModalOpen, setIsEditModalOpen] = useState(false);
+    const [editingContact, setEditingContact] = useState<Contact | null>(null);
+    const [isTeamModalOpen, setIsTeamModalOpen] = useState(false);
+
+    // Import
     const [jsonInput, setJsonInput] = useState('');
     const [isImporting, setIsImporting] = useState(false);
 
-    // Filtering & Selection
+    // Filters
     const [filterDate, setFilterDate] = useState('');
+    const [filterAssignee, setFilterAssignee] = useState('');
+    const [filterCallback, setFilterCallback] = useState(''); // 'today', 'overdue', 'future'
+    const [searchQuery, setSearchQuery] = useState('');
+
     const [selectedIds, setSelectedIds] = useState<Set<string>>(new Set());
 
     useEffect(() => {
         fetchContacts();
+        fetchTeam();
     }, []);
 
     const fetchContacts = async () => {
@@ -28,15 +52,59 @@ const ContactsPage = () => {
         setContacts(res.data);
     };
 
+    const fetchTeam = async () => {
+        try {
+            const res = await axios.get('/api/team');
+            setTeamMembers(res.data);
+        } catch (e) { console.error(e); }
+    };
+
     // Derived State: Filtered Contacts
     const filteredContacts = useMemo(() => {
-        if (!filterDate) return contacts;
-        const filterTime = new Date(filterDate).getTime();
-        return contacts.filter(c => {
-            if (!c.dateAdded) return false;
-            return new Date(c.dateAdded).getTime() >= filterTime;
-        });
-    }, [contacts, filterDate]);
+        let result = contacts;
+
+        // Search
+        if (searchQuery) {
+            const lower = searchQuery.toLowerCase();
+            result = result.filter(c =>
+                c.name?.toLowerCase().includes(lower) ||
+                c.email.toLowerCase().includes(lower)
+            );
+        }
+
+        // Date Added
+        if (filterDate) {
+            const filterTime = new Date(filterDate).getTime();
+            result = result.filter(c => {
+                if (!c.dateAdded) return false;
+                return new Date(c.dateAdded).getTime() >= filterTime;
+            });
+        }
+
+        // Assignee
+        if (filterAssignee) {
+            if (filterAssignee === 'unassigned') {
+                result = result.filter(c => !c.assignee);
+            } else {
+                result = result.filter(c => c.assignee === filterAssignee);
+            }
+        }
+
+        // Callback Status
+        if (filterCallback) {
+            const todayStr = new Date().toISOString().split('T')[0];
+            result = result.filter(c => {
+                if (!c.callbackDate) return false;
+                const cDate = c.callbackDate.split('T')[0];
+                if (filterCallback === 'today') return cDate === todayStr;
+                if (filterCallback === 'overdue') return cDate < todayStr;
+                if (filterCallback === 'future') return cDate > todayStr;
+                return true;
+            });
+        }
+
+        return result;
+    }, [contacts, filterDate, filterAssignee, filterCallback, searchQuery]);
 
     // Selection Logic
     const toggleSelectAll = () => {
@@ -58,7 +126,6 @@ const ContactsPage = () => {
         try {
             const parsed = JSON.parse(jsonInput);
             if (!Array.isArray(parsed)) throw new Error('Must be an array');
-
             await axios.post('/api/contacts/import', { contacts: parsed });
             setIsImporting(false);
             setJsonInput('');
@@ -74,9 +141,19 @@ const ContactsPage = () => {
         fetchContacts();
     }
 
+    const handleEdit = (contact: Contact) => {
+        setEditingContact(contact);
+        setIsEditModalOpen(true);
+    };
+
+    const handleCloseEdit = () => {
+        setIsEditModalOpen(false);
+        setEditingContact(null);
+        fetchTeam(); // Refresh team data in case assignee was changed
+    };
+
     const handleBulkDelete = async () => {
         if (!confirm(`Delete ${selectedIds.size} contacts?`)) return;
-        // In a real app, use a bulk delete endpoint. Here we loop (MVP style).
         for (const id of selectedIds) {
             await axios.delete(`/api/contacts/${id}`);
         }
@@ -85,73 +162,124 @@ const ContactsPage = () => {
     }
 
     const handleCopyFilteredDocs = () => {
-        // Prepare clean JSON for the Campaign Page
         const exportData = filteredContacts.map(c => ({
             name: c.name,
             email: c.email,
             phone: c.phone
         }));
         navigator.clipboard.writeText(JSON.stringify(exportData, null, 2));
-        alert(`Copied ${exportData.length} contacts to clipboard! Paste this in the Campaign page.`);
+        alert(`Copied ${exportData.length} contacts to clipboard!`);
     }
+
+    const getAssigneeName = (id?: string) => {
+        if (!id) return null;
+        const member = teamMembers.find(m => m._id === id);
+        return member ? member.name : 'Unknown';
+    };
 
     return (
         <div>
-            <div className="flex justify-between items-end mb-8">
-                <div>
-                    <h1 className="text-2xl font-bold text-gray-800 mb-2">Contacts</h1>
-                    <div className="flex items-center gap-2 text-sm text-gray-500">
-                        <Calendar size={16} />
-                        <span>Filter Added After:</span>
-                        <input
-                            type="date"
-                            className="border rounded px-2 py-1"
-                            value={filterDate}
-                            onChange={(e) => setFilterDate(e.target.value)}
-                        />
-                        {filterDate && (
-                            <button onClick={() => setFilterDate('')} className="text-red-500 hover:underline">Clear</button>
-                        )}
+            <div className="flex flex-col gap-4 mb-8">
+                <div className="flex justify-between items-start">
+                    <div>
+                        <h1 className="text-2xl font-bold text-gray-800 mb-1">Contacts</h1>
+                        <p className="text-sm text-gray-500">Manage your leads and assignments</p>
+                    </div>
+                    <div className="flex gap-2">
+                        <button
+                            onClick={() => setIsTeamModalOpen(true)}
+                            className="flex items-center gap-2 bg-indigo-50 text-indigo-700 px-4 py-2 rounded-lg hover:bg-indigo-100 transition font-medium text-sm border border-indigo-100"
+                        >
+                            <Users size={16} /> Manage Team
+                        </button>
+                        <button
+                            onClick={() => setIsImporting(!isImporting)}
+                            className="flex items-center gap-2 bg-blue-600 text-white px-4 py-2 rounded-lg hover:bg-blue-700 transition font-medium text-sm shadow-sm"
+                        >
+                            <Upload size={16} /> Import
+                        </button>
                     </div>
                 </div>
 
-                <div className="flex gap-2">
-                    {selectedIds.size > 0 && (
-                        <button onClick={handleBulkDelete} className="flex items-center gap-2 bg-red-50 border border-red-100 text-red-600 px-4 py-2 rounded-lg hover:bg-red-100 transition">
-                            <Trash2 size={18} />
-                            <span>Delete ({selectedIds.size})</span>
-                        </button>
-                    )}
+                {/* Toolbar */}
+                <div className="bg-white p-3 rounded-xl border border-gray-200 shadow-sm flex flex-wrap gap-3 items-center">
+                    <div className="flex items-center gap-2 px-3 py-2 bg-gray-50 rounded-lg border border-gray-100 flex-1 min-w-[200px]">
+                        <Search size={16} className="text-gray-400" />
+                        <input
+                            placeholder="Search name or email..."
+                            className="bg-transparent outline-none text-sm w-full"
+                            value={searchQuery}
+                            onChange={e => setSearchQuery(e.target.value)}
+                        />
+                    </div>
 
-                    <button
-                        onClick={handleCopyFilteredDocs}
-                        className="flex items-center gap-2 bg-green-50 border border-green-100 text-green-700 px-4 py-2 rounded-lg hover:bg-green-100 transition"
-                    >
-                        <Copy size={18} />
-                        <span>Copy Filtered JSON</span>
-                    </button>
+                    <div className="h-8 w-px bg-gray-200 mx-1 hidden md:block"></div>
 
-                    <button
-                        onClick={() => setIsImporting(!isImporting)}
-                        className="flex items-center gap-2 bg-white border border-gray-200 text-gray-700 px-4 py-2 rounded-lg hover:bg-gray-50 transition"
-                    >
-                        <Upload size={18} />
-                        <span>Import JSON</span>
-                    </button>
+                    <div className="flex items-center gap-2 text-sm text-gray-600">
+                        <User size={16} className="text-gray-400" />
+                        <select
+                            className="bg-transparent outline-none font-medium hover:bg-gray-50 rounded px-1"
+                            value={filterAssignee}
+                            onChange={e => setFilterAssignee(e.target.value)}
+                        >
+                            <option value="">All Assignees</option>
+                            <option value="unassigned">Unassigned</option>
+                            {teamMembers.map(m => (
+                                <option key={m._id} value={m._id}>{m.name}</option>
+                            ))}
+                        </select>
+                    </div>
+
+                    <div className="flex items-center gap-2 text-sm text-gray-600">
+                        <Calendar size={16} className="text-gray-400" />
+                        <select
+                            className="bg-transparent outline-none font-medium hover:bg-gray-50 rounded px-1"
+                            value={filterCallback}
+                            onChange={e => setFilterCallback(e.target.value)}
+                        >
+                            <option value="">Any Time</option>
+                            <option value="today">Call Today</option>
+                            <option value="overdue">Overdue</option>
+                            <option value="future">Scheduled Future</option>
+                        </select>
+                    </div>
+
+                    <div className="flex items-center gap-2 bg-gray-50 border border-gray-200 rounded-lg px-2 py-1">
+                        <span className="text-xs text-gray-400">Added After:</span>
+                        <input
+                            type="date"
+                            className="bg-transparent text-sm outline-none"
+                            value={filterDate}
+                            onChange={(e) => setFilterDate(e.target.value)}
+                        />
+                    </div>
+
+                    <div className="flex-1 text-right">
+                        {selectedIds.size > 0 && (
+                            <div className="flex gap-2 justify-end">
+                                <button onClick={handleBulkDelete} className="text-red-600 text-sm hover:underline flex items-center gap-1">
+                                    <Trash2 size={14} /> Delete ({selectedIds.size})
+                                </button>
+                                <button onClick={handleCopyFilteredDocs} className="text-green-600 text-sm hover:underline flex items-center gap-1">
+                                    <Copy size={14} /> Copy JSON
+                                </button>
+                            </div>
+                        )}
+                    </div>
                 </div>
             </div>
 
             {isImporting && (
-                <div className="mb-8 bg-blue-50 p-6 rounded-xl border border-blue-100">
+                <div className="mb-8 bg-blue-50 p-6 rounded-xl border border-blue-100 animate-in fade-in slide-in-from-top-4">
                     <h3 className="font-semibold text-blue-900 mb-2">Paste JSON Data</h3>
                     <p className="text-xs text-blue-700 mb-2">Format: <code>[{`{"email": "...", "name": "...", "phone": "..."}`}]</code></p>
                     <textarea
-                        className="w-full p-3 rounded-lg border border-blue-200 mb-3 h-32 font-mono text-sm"
+                        className="w-full p-3 rounded-lg border border-blue-200 mb-3 h-32 font-mono text-sm focus:ring-2 focus:ring-blue-500 outline-none"
                         value={jsonInput}
                         onChange={(e) => setJsonInput(e.target.value)}
                         placeholder='[{"email":"alex@example.com", "name": "Alex", "phone": "555-0199"}]'
                     />
-                    <button onClick={handleImport} className="bg-blue-600 text-white px-4 py-2 rounded-lg text-sm font-medium">
+                    <button onClick={handleImport} className="bg-blue-600 text-white px-4 py-2 rounded-lg text-sm font-medium hover:bg-blue-700">
                         Run Import
                     </button>
                 </div>
@@ -168,10 +296,10 @@ const ContactsPage = () => {
                                     onChange={toggleSelectAll}
                                 />
                             </th>
-                            <th className="px-6 py-4 text-xs font-semibold text-gray-500 uppercase">Name</th>
-                            <th className="px-6 py-4 text-xs font-semibold text-gray-500 uppercase">Email</th>
-                            <th className="px-6 py-4 text-xs font-semibold text-gray-500 uppercase">Phone</th>
-                            <th className="px-6 py-4 text-xs font-semibold text-gray-500 uppercase">Added</th>
+                            <th className="px-6 py-4 text-xs font-semibold text-gray-500 uppercase">Contact</th>
+                            <th className="px-6 py-4 text-xs font-semibold text-gray-500 uppercase">Status</th>
+                            <th className="px-6 py-4 text-xs font-semibold text-gray-500 uppercase">Assignee</th>
+                            <th className="px-6 py-4 text-xs font-semibold text-gray-500 uppercase">Callback</th>
                             <th className="px-6 py-4 text-xs font-semibold text-gray-500 uppercase text-right">Actions</th>
                         </tr>
                     </thead>
@@ -185,14 +313,50 @@ const ContactsPage = () => {
                                         onChange={() => toggleSelect(c._id)}
                                     />
                                 </td>
-                                <td className="px-6 py-4 text-sm font-medium text-gray-900">{c.name || '-'}</td>
-                                <td className="px-6 py-4 text-sm text-gray-500">{c.email}</td>
-                                <td className="px-6 py-4 text-sm text-gray-500 font-mono">{c.phone || '-'}</td>
-                                <td className="px-6 py-4 text-sm text-gray-400">
-                                    {c.dateAdded ? new Date(c.dateAdded).toLocaleDateString() : '-'}
+                                <td className="px-6 py-4">
+                                    <div className="font-medium text-sm text-gray-900">{c.name || 'Unknown'}</div>
+                                    <div className="text-xs text-gray-500">{c.email}</div>
                                 </td>
-                                <td className="px-6 py-4 text-right">
-                                    <button onClick={() => handleDelete(c._id)} className="text-gray-300 hover:text-red-500">
+                                <td className="px-6 py-4">
+                                    {c.notes ? (
+                                        <div className="group relative inline-block">
+                                            <span className="text-xs text-gray-700 cursor-help">
+                                                {c.notes.length > 40 ? c.notes.substring(0, 40) + '...' : c.notes}
+                                            </span>
+                                            {c.notes.length > 40 && (
+                                                <div className="invisible group-hover:visible opacity-0 group-hover:opacity-100 transition-opacity duration-200 absolute z-50 left-0 top-full mt-2 bg-gray-900 text-white text-xs rounded-lg p-3 shadow-xl w-64 pointer-events-none">
+                                                    {c.notes}
+                                                    <div className="absolute -top-1 left-4 w-2 h-2 bg-gray-900 transform rotate-45"></div>
+                                                </div>
+                                            )}
+                                        </div>
+                                    ) : <span className="text-gray-400 text-xs">-</span>}
+                                </td>
+                                <td className="px-6 py-4">
+                                    {c.assignee ? (
+                                        <div className="flex items-center gap-1.5">
+                                            <div className="w-5 h-5 rounded-full bg-indigo-100 text-indigo-700 flex items-center justify-center text-[10px] font-bold">
+                                                {getAssigneeName(c.assignee)?.charAt(0)}
+                                            </div>
+                                            <span className="text-sm text-gray-700">{getAssigneeName(c.assignee)}</span>
+                                        </div>
+                                    ) : (
+                                        <span className="text-xs text-gray-400 italic">Unassigned</span>
+                                    )}
+                                </td>
+                                <td className="px-6 py-4">
+                                    {c.callbackDate ? (
+                                        <span className={`text-xs font-medium px-2 py-1 rounded-full ${new Date(c.callbackDate) < new Date() ? 'bg-red-50 text-red-600' : 'bg-blue-50 text-blue-600'
+                                            }`}>
+                                            {new Date(c.callbackDate).toLocaleDateString()}
+                                        </span>
+                                    ) : '-'}
+                                </td>
+                                <td className="px-6 py-4 text-right flex justify-end gap-2 text-gray-400">
+                                    <button onClick={() => handleEdit(c)} className="hover:text-blue-600 transition">
+                                        <Edit size={16} />
+                                    </button>
+                                    <button onClick={() => handleDelete(c._id)} className="hover:text-red-500 transition">
                                         <Trash2 size={16} />
                                     </button>
                                 </td>
@@ -200,14 +364,29 @@ const ContactsPage = () => {
                         ))}
                         {filteredContacts.length === 0 && (
                             <tr>
-                                <td colSpan={6} className="px-6 py-8 text-center text-gray-400 text-sm">
-                                    {contacts.length === 0 ? "No contacts found. Import some!" : "No contacts match filter."}
+                                <td colSpan={6} className="px-6 py-12 text-center text-gray-400">
+                                    <div className="flex flex-col items-center gap-2">
+                                        <Filter size={24} className="opacity-20" />
+                                        <p className="text-sm">No contacts found matching your filters.</p>
+                                    </div>
                                 </td>
                             </tr>
                         )}
                     </tbody>
                 </table>
             </div>
+
+            <ContactEditModal
+                isOpen={isEditModalOpen}
+                onClose={handleCloseEdit}
+                contact={editingContact}
+                onSave={fetchContacts}
+            />
+
+            <TeamManagerModal
+                isOpen={isTeamModalOpen}
+                onClose={() => setIsTeamModalOpen(false)}
+            />
         </div>
     );
 };

@@ -39,6 +39,10 @@ export class ContactsService {
         return this.contactModel.bulkWrite(operations);
     }
 
+    async update(id: string, updateData: any) {
+        return this.contactModel.findByIdAndUpdate(id, updateData, { new: true }).exec();
+    }
+
     async delete(id: string) {
         return this.contactModel.findByIdAndDelete(id);
     }

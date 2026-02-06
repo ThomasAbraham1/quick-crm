@@ -21,6 +21,15 @@ export class Contact {
     @Prop({ type: Object })
     otherInfo: Record<string, any>;
 
+    @Prop()
+    notes: string;
+
+    @Prop()
+    callbackDate: Date;
+
+    @Prop()
+    assignee: string;
+
     @Prop({ default: Date.now })
     dateAdded: Date;
 

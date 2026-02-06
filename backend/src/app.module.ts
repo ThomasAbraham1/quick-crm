@@ -6,6 +6,7 @@ import { MailModule } from './mail/mail.module';
 import { TemplatesModule } from './templates/templates.module';
 import { ContactsModule } from './contacts/contacts.module';
 import { CampaignsModule } from './campaigns/campaigns.module';
+import { TeamModule } from './team/team.module';
 
 @Module({
     imports: [
@@ -22,7 +23,8 @@ import { CampaignsModule } from './campaigns/campaigns.module';
         MailModule,
         TemplatesModule,
         ContactsModule,
-        CampaignsModule
+        CampaignsModule,
+        TeamModule
     ],
 })
 export class AppModule { }
