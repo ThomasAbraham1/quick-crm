@@ -137,7 +137,7 @@ const ContactsPage = () => {
 
     const handleDelete = async (id: string) => {
         if (!confirm('Are you sure?')) return;
-        await api.delete(`/api/contacts/${id}`);
+        await api.delete(`contacts/${id}`);
         fetchContacts();
     }
 

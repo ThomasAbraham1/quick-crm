@@ -50,8 +50,8 @@ if (!process.env.LAMBDA_TASK_ROOT) {
         const app = await NestFactory.create(AppModule);
         app.enableCors();
         console.log('Backend starting locally...');
-        await app.listen(3000);
-        console.log('Backend is running on http://localhost:3000');
+        await app.listen(3002);
+        console.log('Backend is running on http://localhost:3002');
     }
     runLocal();
 }
