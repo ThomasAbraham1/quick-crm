@@ -180,21 +180,21 @@ const ContactsPage = () => {
     return (
         <div>
             <div className="flex flex-col gap-4 mb-8">
-                <div className="flex justify-between items-start">
+                <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
                     <div>
                         <h1 className="text-2xl font-bold text-gray-800 mb-1">Contacts</h1>
                         <p className="text-sm text-gray-500">Manage your leads and assignments</p>
                     </div>
-                    <div className="flex gap-2">
+                    <div className="flex gap-2 w-full sm:w-auto">
                         <button
                             onClick={() => setIsTeamModalOpen(true)}
-                            className="flex items-center gap-2 bg-indigo-50 text-indigo-700 px-4 py-2 rounded-lg hover:bg-indigo-100 transition font-medium text-sm border border-indigo-100"
+                            className="flex-1 sm:flex-none justify-center flex items-center gap-2 bg-indigo-50 text-indigo-700 px-4 py-2 rounded-lg hover:bg-indigo-100 transition font-medium text-sm border border-indigo-100 whitespace-nowrap"
                         >
                             <Users size={16} /> Manage Team
                         </button>
                         <button
                             onClick={() => setIsImporting(!isImporting)}
-                            className="flex items-center gap-2 bg-blue-600 text-white px-4 py-2 rounded-lg hover:bg-blue-700 transition font-medium text-sm shadow-sm"
+                            className="flex-1 sm:flex-none justify-center flex items-center gap-2 bg-blue-600 text-white px-4 py-2 rounded-lg hover:bg-blue-700 transition font-medium text-sm shadow-sm whitespace-nowrap"
                         >
                             <Upload size={16} /> Import
                         </button>
@@ -202,9 +202,10 @@ const ContactsPage = () => {
                 </div>
 
                 {/* Toolbar */}
-                <div className="bg-white p-3 rounded-xl border border-gray-200 shadow-sm flex flex-wrap gap-3 items-center">
-                    <div className="flex items-center gap-2 px-3 py-2 bg-gray-50 rounded-lg border border-gray-100 flex-1 min-w-[200px]">
-                        <Search size={16} className="text-gray-400" />
+                <div className="bg-white p-3 rounded-xl border border-gray-200 shadow-sm grid grid-cols-2 lg:flex gap-3 items-center">
+                    {/* Search - Full width on mobile */}
+                    <div className="col-span-2 lg:flex-1 lg:min-w-[200px] flex items-center gap-2 px-3 py-2 bg-gray-50 rounded-lg border border-gray-100">
+                        <Search size={16} className="text-gray-400 shrink-0" />
                         <input
                             placeholder="Search name or email..."
                             className="bg-transparent outline-none text-sm w-full"
@@ -213,12 +214,13 @@ const ContactsPage = () => {
                         />
                     </div>
 
-                    <div className="h-8 w-px bg-gray-200 mx-1 hidden md:block"></div>
+                    <div className="h-8 w-px bg-gray-200 mx-1 hidden lg:block"></div>
 
-                    <div className="flex items-center gap-2 text-sm text-gray-600">
-                        <User size={16} className="text-gray-400" />
+                    {/* Filters - Grid on mobile */}
+                    <div className="col-span-1 flex items-center gap-2 text-sm text-gray-600 bg-gray-50 lg:bg-transparent px-2 lg:px-0 py-2 lg:py-0 rounded-lg lg:rounded-none border border-gray-100 lg:border-none">
+                        <User size={16} className="text-gray-400 shrink-0" />
                         <select
-                            className="bg-transparent outline-none font-medium hover:bg-gray-50 rounded px-1"
+                            className="bg-transparent outline-none font-medium hover:bg-gray-50 rounded px-1 w-full lg:w-auto"
                             value={filterAssignee}
                             onChange={e => setFilterAssignee(e.target.value)}
                         >
@@ -230,10 +232,10 @@ const ContactsPage = () => {
                         </select>
                     </div>
 
-                    <div className="flex items-center gap-2 text-sm text-gray-600">
-                        <Calendar size={16} className="text-gray-400" />
+                    <div className="col-span-1 flex items-center gap-2 text-sm text-gray-600 bg-gray-50 lg:bg-transparent px-2 lg:px-0 py-2 lg:py-0 rounded-lg lg:rounded-none border border-gray-100 lg:border-none">
+                        <Calendar size={16} className="text-gray-400 shrink-0" />
                         <select
-                            className="bg-transparent outline-none font-medium hover:bg-gray-50 rounded px-1"
+                            className="bg-transparent outline-none font-medium hover:bg-gray-50 rounded px-1 w-full lg:w-auto"
                             value={filterCallback}
                             onChange={e => setFilterCallback(e.target.value)}
                         >
@@ -244,19 +246,21 @@ const ContactsPage = () => {
                         </select>
                     </div>
 
-                    <div className="flex items-center gap-2 bg-gray-50 border border-gray-200 rounded-lg px-2 py-1">
-                        <span className="text-xs text-gray-400">Added After:</span>
+                    {/* Date Filter - Full width on small mobile, half on sm */}
+                    <div className="col-span-2 sm:col-span-1 lg:w-auto flex items-center gap-2 bg-gray-50 border border-gray-200 rounded-lg px-2 py-2 lg:py-1">
+                        <span className="text-xs text-gray-400 whitespace-nowrap">Added After:</span>
                         <input
                             type="date"
-                            className="bg-transparent text-sm outline-none"
+                            className="bg-transparent text-sm outline-none w-full"
                             value={filterDate}
                             onChange={(e) => setFilterDate(e.target.value)}
                         />
                     </div>
 
-                    <div className="flex-1 text-right">
+                    {/* Actions - Aligned right on desktop */}
+                    <div className="col-span-2 sm:col-span-1 lg:flex-1 flex justify-end">
                         {selectedIds.size > 0 && (
-                            <div className="flex gap-2 justify-end">
+                            <div className="flex gap-3 justify-end w-full lg:w-auto">
                                 <button onClick={handleBulkDelete} className="text-red-600 text-sm hover:underline flex items-center gap-1">
                                     <Trash2 size={14} /> Delete ({selectedIds.size})
                                 </button>
