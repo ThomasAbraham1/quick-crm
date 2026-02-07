@@ -324,7 +324,7 @@ const ContactsPage = () => {
 
             {/* Table */}
             <div className="bg-white rounded-xl border border-gray-100 shadow-sm overflow-hidden">
-                <div className="overflow-x-auto">
+                <div className="overflow-x-auto lg:overflow-x-visible">
                     <table className="w-full text-left">
                         <thead className="bg-gray-50 border-b border-gray-100">
                             <tr>
