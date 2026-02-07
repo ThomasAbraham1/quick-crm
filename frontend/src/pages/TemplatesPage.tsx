@@ -37,7 +37,7 @@ const TemplatesPage = () => {
 
     const handleDelete = async (id: string) => {
         if (!confirm('Are you sure?')) return;
-        await api.delete(`/api/templates/${id}`);
+        await api.delete(`templates/${id}`);
         fetchTemplates();
     }
 

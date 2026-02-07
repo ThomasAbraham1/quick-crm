@@ -52,7 +52,7 @@ const TeamManagerModal: React.FC<TeamManagerModalProps> = ({ isOpen, onClose }) 
     const handleDelete = async (id: string) => {
         if (!confirm('Remove this team member?')) return;
         try {
-            await api.delete(`/api/team/${id}`);
+            await api.delete(`team/${id}`);
             fetchMembers();
         } catch (err) {
             alert('Failed to delete member');

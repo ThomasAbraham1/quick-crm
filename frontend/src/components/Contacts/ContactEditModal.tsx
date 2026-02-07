@@ -57,7 +57,7 @@ const ContactEditModal: React.FC<ContactEditModalProps> = ({ isOpen, onClose, co
         if (!contact?._id) return;
         setLoading(true);
         try {
-            await api.put(`/api/contacts/${contact._id}`, formData);
+            await api.put(`contacts/${contact._id}`, formData);
             onSave();
             onClose();
         } catch (err) {

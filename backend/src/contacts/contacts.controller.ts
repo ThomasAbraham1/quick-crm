@@ -28,6 +28,7 @@ export class ContactsController {
 
     @Put(':id')
     update(@Param('id') id: string, @Body() updateData: any) {
+        console.log(updateData)
         return this.contactsService.update(id, updateData);
     }
 
@@ -36,3 +37,5 @@ export class ContactsController {
         return this.contactsService.delete(id);
     }
 }
+
+
