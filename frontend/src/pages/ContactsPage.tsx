@@ -127,10 +127,26 @@ const ContactsPage = () => {
         try {
             const parsed = JSON.parse(jsonInput);
             if (!Array.isArray(parsed)) throw new Error('Must be an array');
+
+            // Validate that all records have email field
+            const missingEmailIndexes: number[] = [];
+            parsed.forEach((contact, index) => {
+                if (!contact.email || contact.email.trim() === '') {
+                    missingEmailIndexes.push(index);
+                }
+            });
+
+            if (missingEmailIndexes.length > 0) {
+                const positions = missingEmailIndexes.map(i => `#${i + 1}`).join(', ');
+                alert(`❌ Import Failed!\n\nThe following contact(s) are missing the required "email" field:\nPositions: ${positions}\n\nPlease add an email field to all contacts before importing.`);
+                return;
+            }
+
             await api.post('contacts/import', { contacts: parsed });
             setIsImporting(false);
             setJsonInput('');
             fetchContacts();
+            alert(`✅ Successfully imported ${parsed.length} contact(s)!`);
         } catch (e: any) {
             alert('Invalid JSON format: ' + e.message);
         }
