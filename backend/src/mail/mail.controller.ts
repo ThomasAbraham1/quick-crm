@@ -1,4 +1,4 @@
-import { Controller, Post, Body, Get, Param, Res, Query } from '@nestjs/common';
+import { Controller, Post, Body, Get, Param, Res, Query, UseGuards, Req } from '@nestjs/common';
 import { InjectQueue } from '@nestjs/bullmq';
 import { Queue } from 'bullmq';
 import { InjectModel } from '@nestjs/mongoose';
@@ -7,8 +7,10 @@ import { Contact } from '../schemas/contact.schema';
 import { Template } from '../schemas/template.schema';
 import { CampaignsService } from '../campaigns/campaigns.service';
 import { Response } from 'express';
+import { JwtAuthGuard } from '../auth/jwt-auth.guard';
 
 @Controller('mail')
+@UseGuards(JwtAuthGuard) // Protect all mail routes
 export class MailController {
     constructor(
         @InjectQueue('email-queue') private emailQueue: Queue,
@@ -18,11 +20,13 @@ export class MailController {
     ) { }
 
     @Post('check-campaign')
-    async checkCampaign(@Body() body: { templateId: string; contacts: any[] }) {
+    async checkCampaign(@Req() req, @Body() body: { templateId: string; contacts: any[] }) {
+        const userId = req.user.userId;
         const contactEmails = body.contacts.map(c => c.email);
 
-        // Find contacts that ALREADY have this template in history
+        // Find contacts that ALREADY have this template in history (scoped to user)
         const duplicates = await this.contactModel.find({
+            userId,
             email: { $in: contactEmails },
             history: body.templateId.trim()
         }).select('email').exec();
@@ -38,21 +42,23 @@ export class MailController {
     }
 
     @Post('launch')
-    async launchCampaign(@Body() body: { templateId: string; contacts: any[]; force?: boolean; name?: string }) {
+    async launchCampaign(@Req() req, @Body() body: { templateId: string; contacts: any[]; force?: boolean; name?: string }) {
+        const userId = req.user.userId;
+
         // 1. Create Campaign Record
         const campaignName = body.name || `Campaign ${new Date().toISOString()}`;
-        const campaign = await this.campaignsService.create({
+        const campaign = await this.campaignsService.create(userId, {
             name: campaignName,
             templateId: body.templateId,
             totalContacts: body.contacts.length
         });
 
-        // 2. Save/Update Contacts
+        // 2. Save/Update Contacts (scoped to user)
         const savedContacts = [];
         for (const c of body.contacts) {
             let contact = await this.contactModel.findOneAndUpdate(
-                { email: c.email },
-                { $set: c, $setOnInsert: { dateAdded: new Date() } },
+                { email: c.email, userId },
+                { $set: { ...c, userId }, $setOnInsert: { dateAdded: new Date() } },
                 { new: true, upsert: true }
             );
             savedContacts.push(contact);
@@ -74,6 +80,7 @@ export class MailController {
                     contactId: contact._id,
                     templateId: body.templateId,
                     campaignId: campaign._id.toString(),
+                    userId, // Include userId for processor
                     force: !!body.force
                 }
             });
@@ -93,8 +100,9 @@ export class MailController {
 
     // Helper to create a template quickly
     @Post('template')
-    async createTemplate(@Body() body: { subject: string; body: string }) {
-        const t = new this.templateModel(body);
+    async createTemplate(@Req() req, @Body() body: { subject: string; body: string }) {
+        const userId = req.user.userId;
+        const t = new this.templateModel({ ...body, userId });
         return t.save();
     }
 }
@@ -104,13 +112,13 @@ export class TrackingController {
     constructor(private campaignsService: CampaignsService) { }
 
     @Get('open')
-    async trackOpen(@Query('campaignId') campaignId: string, @Query('contactId') contactId: string, @Res() res: Response) {
-        console.log('🎯 TRACKING PIXEL HIT!', { campaignId, contactId });
+    async trackOpen(@Query('campaignId') campaignId: string, @Query('contactId') contactId: string, @Query('userId') userId: string, @Res() res: Response) {
+        console.log('🎯 TRACKING PIXEL HIT!', { campaignId, contactId, userId });
 
         // Increment opened count for campaign
-        if (campaignId) {
+        if (campaignId && userId) {
             try {
-                await this.campaignsService.incrementOpened(campaignId);
+                await this.campaignsService.incrementOpened(userId, campaignId);
                 console.log('✅ Incremented openedCount for campaign:', campaignId);
             } catch (err) {
                 console.error('❌ Error incrementing:', err);

@@ -36,7 +36,7 @@ export class MailProcessor extends WorkerHost {
     }
 
     async process(job: Job<any, any, string>): Promise<any> {
-        const { contactId, templateId, campaignId } = job.data;
+        const { contactId, templateId, campaignId, userId } = job.data;
         this.logger.log(`Processing email for contact ${contactId}, template ${templateId}`);
 
         const contact = await this.contactModel.findById(contactId);
@@ -44,8 +44,8 @@ export class MailProcessor extends WorkerHost {
 
         if (!contact || !template) {
             this.logger.error(`Missing - Contact: ${!!contact}, Template: ${!!template}, ContactID: ${contactId}, TemplateID: ${templateId}`);
-            if (campaignId) {
-                await this.campaignsService.incrementFailed(campaignId);
+            if (campaignId && userId) {
+                await this.campaignsService.incrementFailed(userId, campaignId);
             }
             return;
         }
@@ -75,7 +75,7 @@ export class MailProcessor extends WorkerHost {
 
         // Inject tracking pixel for open tracking
         const baseUrl = this.configService.get('BASE_URL') || 'http://localhost:3000';
-        const trackingPixel = `<img src="${baseUrl}/track/open?campaignId=${campaignId}&contactId=${contactId}" width="1" height="1" style="display:none;" />`;
+        const trackingPixel = `<img src="${baseUrl}/track/open?campaignId=${campaignId}&contactId=${contactId}&userId=${userId}" width="1" height="1" style="display:none;" />`;
         body = body + trackingPixel;
 
         this.logger.log(`📧 Tracking pixel URL: ${baseUrl}/track/open?campaignId=${campaignId}&contactId=${contactId}`);
@@ -96,8 +96,8 @@ export class MailProcessor extends WorkerHost {
             await contact.save();
 
             // Update campaign stats
-            if (campaignId) {
-                await this.campaignsService.incrementSent(campaignId);
+            if (campaignId && userId) {
+                await this.campaignsService.incrementSent(userId, campaignId);
             }
 
             this.logger.log(`Email sent to ${contact.email}. History updated.`);
@@ -107,8 +107,8 @@ export class MailProcessor extends WorkerHost {
             await contact.save();
 
             // Update campaign stats
-            if (campaignId) {
-                await this.campaignsService.incrementFailed(campaignId);
+            if (campaignId && userId) {
+                await this.campaignsService.incrementFailed(userId, campaignId);
             }
             throw error; // Let BullMQ handle retry
         }

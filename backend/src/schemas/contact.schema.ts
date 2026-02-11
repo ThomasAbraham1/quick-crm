@@ -1,15 +1,20 @@
 
 import { Prop, Schema, SchemaFactory } from '@nestjs/mongoose';
 import { HydratedDocument } from 'mongoose';
+import * as mongoose from 'mongoose';
 
 export type ContactDocument = HydratedDocument<Contact>;
 
 @Schema()
 export class Contact {
-    @Prop({ required: true })
-    email: string;
+    // User who owns this contact (for multi-tenancy)
+    @Prop({ required: true, type: mongoose.Schema.Types.ObjectId, ref: 'User' })
+    userId: mongoose.Types.ObjectId;
 
     @Prop()
+    email: string;
+
+    @Prop() 
     name: string;
 
     @Prop({ default: 'active' }) // active, unsubscribed, bounced

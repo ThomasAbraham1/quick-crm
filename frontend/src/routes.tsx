@@ -8,23 +8,35 @@ import ContactsPage from './pages/ContactsPage';
 import CampaignsPage from './pages/CampaignsPage';
 import CampaignDetail from './pages/CampaignDetail';
 
+import Login from './pages/Login';
+
 // Placeholder pages for now
 const Dashboard = () => <LaunchCampaign />;
 
+import { AuthProvider } from './context/AuthContext';
+import ProtectedRoute from './components/ProtectedRoute';
+
 const AppRoutes = () => {
     return (
-        <BrowserRouter>
-            <Routes>
-                <Route path="/" element={<Layout />}>
-                    <Route index element={<Dashboard />} />
-                    <Route path="templates" element={<TemplatesPage />} />
-                    <Route path="contacts" element={<ContactsPage />} />
-                    <Route path="campaigns" element={<CampaignsPage />} />
-                    <Route path="campaigns/:id" element={<CampaignDetail />} />
-                    <Route path="*" element={<Navigate to="/" />} />
-                </Route>
-            </Routes>
-        </BrowserRouter>
+        <AuthProvider>
+            <BrowserRouter>
+                <Routes>
+                    <Route path="/login" element={<Login />} />
+
+                    {/* Protected Routes */}
+                    <Route element={<ProtectedRoute />}>
+                        <Route path="/" element={<Layout />}>
+                            <Route index element={<Dashboard />} />
+                            <Route path="templates" element={<TemplatesPage />} />
+                            <Route path="contacts" element={<ContactsPage />} />
+                            <Route path="campaigns" element={<CampaignsPage />} />
+                            <Route path="campaigns/:id" element={<CampaignDetail />} />
+                            <Route path="*" element={<Navigate to="/" />} />
+                        </Route>
+                    </Route>
+                </Routes>
+            </BrowserRouter>
+        </AuthProvider>
     );
 };
 

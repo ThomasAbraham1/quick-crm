@@ -1,9 +1,10 @@
 
 import React, { useEffect, useState, useMemo } from 'react';
-import { Upload, Trash2, Copy, Filter, Calendar, Edit, Users, User, CheckCircle, Search, Info, UserPlus } from 'lucide-react';
+import { Upload, Trash2, Copy, Filter, Calendar, Edit, Users, User, CheckCircle, Search, Info, UserPlus, Loader2 } from 'lucide-react';
 import api from '../api';
 import ContactEditModal from '../components/Contacts/ContactEditModal';
 import TeamManagerModal from '../components/Team/TeamManagerModal';
+import { parseContactData } from '../utils/dataParser';
 
 interface Contact {
     _id: string;
@@ -34,6 +35,7 @@ const ContactsPage = () => {
     // Import
     const [jsonInput, setJsonInput] = useState('');
     const [isImporting, setIsImporting] = useState(false);
+    const [isParsing, setIsParsing] = useState(false);
 
     // Filters
     const [filterDate, setFilterDate] = useState('');
@@ -69,7 +71,7 @@ const ContactsPage = () => {
             const lower = searchQuery.toLowerCase();
             result = result.filter(c =>
                 c.name?.toLowerCase().includes(lower) ||
-                c.email.toLowerCase().includes(lower)
+                c.email?.toLowerCase().includes(lower)
             );
         }
 
@@ -124,31 +126,47 @@ const ContactsPage = () => {
     };
 
     const handleImport = async () => {
+        setIsParsing(true);
+
         try {
-            const parsed = JSON.parse(jsonInput);
-            if (!Array.isArray(parsed)) throw new Error('Must be an array');
+            // Small delay to ensure spinner is visible
+            await new Promise(resolve => setTimeout(resolve, 300));
 
-            // Validate that all records have email field
-            const missingEmailIndexes: number[] = [];
-            parsed.forEach((contact, index) => {
-                if (!contact.email || contact.email.trim() === '') {
-                    missingEmailIndexes.push(index);
-                }
-            });
+            // Parse the input (auto-detects CSV or JSON)
+            const parsedContacts = parseContactData(jsonInput);
 
-            if (missingEmailIndexes.length > 0) {
-                const positions = missingEmailIndexes.map(i => `#${i + 1}`).join(', ');
-                alert(`❌ Import Failed!\n\nThe following contact(s) are missing the required "email" field:\nPositions: ${positions}\n\nPlease add an email field to all contacts before importing.`);
+            if (parsedContacts.length === 0) {
+                setIsParsing(false);
+                alert('❌ No valid contacts found!\n\nAll businesses have websites or no valid data was found.');
                 return;
             }
 
-            await api.post('contacts/import', { contacts: parsed });
+            // Validate that we have at least names
+            const missingNameIndexes: number[] = [];
+            parsedContacts.forEach((contact, index) => {
+                if (!contact.name || contact.name.trim() === '') {
+                    missingNameIndexes.push(index);
+                }
+            });
+
+            if (missingNameIndexes.length > 0) {
+                const positions = missingNameIndexes.map(i => `#${i + 1}`).join(', ');
+                setIsParsing(false);
+                alert(`❌ Import Failed!\n\nThe following contact(s) are missing the required "name" field:\nPositions: ${positions}\n\nPlease add a name field to all contacts before importing.`);
+                return;
+            }
+
+            setIsParsing(false);
+
+            // Import the contacts
+            await api.post('contacts/import', { contacts: parsedContacts });
             setIsImporting(false);
             setJsonInput('');
             fetchContacts();
-            alert(`✅ Successfully imported ${parsed.length} contact(s)!`);
+            alert(`✅ Successfully imported ${parsedContacts.length} contact(s)!\n\n${parsedContacts.filter(c => !c.email).length > 0 ? `Note: ${parsedContacts.filter(c => !c.email).length} contact(s) don't have email addresses.` : ''}`);
         } catch (e: any) {
-            alert('Invalid JSON format: ' + e.message);
+            setIsParsing(false);
+            alert('❌ Parse Error: ' + e.message);
         }
     }
 
@@ -324,22 +342,56 @@ const ContactsPage = () => {
 
             {isImporting && (
                 <div className="mb-8 bg-blue-50 p-6 rounded-xl border border-blue-100 animate-in fade-in slide-in-from-top-4">
-                    <h3 className="font-semibold text-blue-900 mb-2">Paste JSON Data</h3>
-                    <p className="text-xs text-blue-700 mb-2">Format: <code>[{`{"email": "...", "name": "...", "phone": "..."}`}]</code></p>
+                    <h3 className="font-semibold text-blue-900 mb-2">Paste CSV or JSON Data</h3>
+                    <p className="text-xs text-blue-700 mb-3">
+                        <strong>Supports:</strong> CSV or JSON format • <strong>Auto-filters:</strong> Businesses with websites
+                        <br />
+                        <strong>CSV Example:</strong> <code>name,email,phone,website,address</code>
+                        <br />
+                        <strong>JSON Example:</strong> <code>[{`{"name": "...", "email": "...", "phone": "...", "website": ""}`}]</code>
+                    </p>
                     <textarea
-                        className="w-full p-3 rounded-lg border border-blue-200 mb-3 h-32 font-mono text-sm focus:ring-2 focus:ring-blue-500 outline-none"
+                        className="w-full p-3 rounded-lg border border-blue-200 mb-3 h-32 font-mono text-sm focus:ring-2 focus:ring-blue-500 outline-none disabled:opacity-50 disabled:cursor-not-allowed"
                         value={jsonInput}
                         onChange={(e) => setJsonInput(e.target.value)}
-                        placeholder='[{"email":"alex@example.com", "name": "Alex", "phone": "555-0199"}]'
+                        placeholder='Paste CSV or JSON here...'
+                        disabled={isParsing}
                     />
-                    <button onClick={handleImport} className="bg-blue-600 text-white px-4 py-2 rounded-lg text-sm font-medium hover:bg-blue-700">
-                        Run Import
-                    </button>
+                    <div className="flex items-center gap-3">
+                        <button
+                            onClick={handleImport}
+                            className="bg-blue-600 text-white px-4 py-2 rounded-lg text-sm font-medium hover:bg-blue-700 disabled:opacity-50 disabled:cursor-not-allowed flex items-center gap-2"
+                            disabled={isParsing || !jsonInput.trim()}
+                        >
+                            {isParsing ? (
+                                <>
+                                    <Loader2 size={16} className="animate-spin" />
+                                    Parsing...
+                                </>
+                            ) : (
+                                <>
+                                    <Upload size={16} />
+                                    Run Import
+                                </>
+                            )}
+                        </button>
+                        <button
+                            onClick={() => {
+                                setIsImporting(false);
+                                setJsonInput('');
+                                setIsParsing(false);
+                            }}
+                            className="text-gray-600 text-sm hover:underline"
+                            disabled={isParsing}
+                        >
+                            Cancel
+                        </button>
+                    </div>
                 </div>
             )}
 
             {/* Table */}
-            <div className="bg-white rounded-xl border border-gray-100 shadow-sm overflow-hidden">
+            <div className="bg-white rounded-xl border border-gray-100 shadow-sm">
                 <div className="overflow-x-auto lg:overflow-x-visible">
                     <table className="w-full text-left">
                         <thead className="bg-gray-50 border-b border-gray-100">
@@ -385,9 +437,9 @@ const ContactsPage = () => {
                                                     {c.notes.length > 40 ? c.notes.substring(0, 40) + '...' : c.notes}
                                                 </span>
                                                 {c.notes.length > 40 && (
-                                                    <div className="invisible group-hover:visible opacity-0 group-hover:opacity-100 transition-opacity duration-200 absolute z-50 left-0 top-full mt-2 bg-gray-900 text-white text-xs rounded-lg p-3 shadow-xl w-64 pointer-events-none whitespace-normal">
+                                                    <div className="invisible group-hover:visible opacity-0 group-hover:opacity-100 transition-opacity duration-200 absolute z-50 left-0 bottom-full mb-2 bg-gray-900 text-white text-xs rounded-lg p-3 shadow-xl w-64 pointer-events-none whitespace-normal">
                                                         {c.notes}
-                                                        <div className="absolute -top-1 left-4 w-2 h-2 bg-gray-900 transform rotate-45"></div>
+                                                        <div className="absolute -bottom-1 left-4 w-2 h-2 bg-gray-900 transform rotate-45"></div>
                                                     </div>
                                                 )}
                                             </div>

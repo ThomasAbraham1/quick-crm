@@ -1,65 +1,102 @@
-
 import { Injectable } from '@nestjs/common';
 import { InjectModel } from '@nestjs/mongoose';
-import { Model } from 'mongoose';
+import { Model, Types } from 'mongoose';
 import { Contact } from '../schemas/contact.schema';
 
 @Injectable()
 export class ContactsService {
     constructor(@InjectModel(Contact.name) private contactModel: Model<Contact>) { }
 
-    async create(createContactDto: { email: string; name: string }) {
-        const contact = new this.contactModel(createContactDto);
+    async create(userId: string, createContactDto: { email: string; name: string }) {
+        const contact = new this.contactModel({ ...createContactDto, userId });
         return contact.save();
     }
 
-    async findAll() {
-        return this.contactModel.find().sort({ _id: -1 }).exec(); // Newest first
+    async findAll(userId: string) {
+        // Explicitly cast to ObjectId to ensure match with DB
+        return this.contactModel.find({ userId: userId }).sort({ _id: -1 }).exec();
     }
 
-    async bulkCreate(contactsData: any[]) {
-        const operations = contactsData.map(c => {
-            // Known fields
-            const { email, name, phone, notes, assignee, callbackDate, ...misc } = c;
+    async bulkCreate(userId: string, contactsData: any[]) {
+        // Separate contacts with and without emails
+        const withEmail = contactsData.filter(c => c.email);
+        const withoutEmail = contactsData.filter(c => !c.email);
 
-            const updateData: any = { email, name };
+        const results: any = {
+            upserted: 0,
+            inserted: 0,
+            modified: 0
+        };
 
-            // Add optional known fields if present
-            if (phone) updateData.phone = phone;
-            if (notes) updateData.notes = notes;
-            if (assignee) updateData.assignee = assignee;
-            if (callbackDate) updateData.callbackDate = new Date(callbackDate);
+        // Convert userId to ObjectId for MongoDB filter
+        const userObjectId = new Types.ObjectId(userId);
 
-            // Store extra fields in misc
-            if (Object.keys(misc).length > 0) {
-                updateData.misc = misc;
-            }
+        // Handle contacts with email (upsert based on email)
+        if (withEmail.length > 0) {
+            const operations = withEmail.map(c => {
+                const { email, name, phone, notes, assignee, callbackDate, ...misc } = c;
+                const updateData: any = { email, name, userId: userObjectId };
 
-            return {
-                updateOne: {
-                    filter: { email: email },
-                    update: {
-                        $set: updateData,
-                        $setOnInsert: { dateAdded: new Date() }
-                    },
-                    upsert: true
+                if (phone) updateData.phone = phone;
+                if (notes) updateData.notes = notes;
+                if (assignee) updateData.assignee = assignee;
+                if (callbackDate) updateData.callbackDate = new Date(callbackDate);
+                if (Object.keys(misc).length > 0) {
+                    updateData.misc = misc;
                 }
-            };
-        });
-        return this.contactModel.bulkWrite(operations);
+
+                return {
+                    updateOne: {
+                        filter: { email: email, userId: userObjectId },
+                        update: {
+                            $set: updateData,
+                            $setOnInsert: { dateAdded: new Date() }
+                        },
+                        upsert: true
+                    }
+                };
+            });
+            const bulkResult = await this.contactModel.bulkWrite(operations);
+            results.upserted += bulkResult.upsertedCount || 0;
+            results.modified += bulkResult.modifiedCount || 0;
+        }
+
+        // Handle contacts without email (always insert)
+        if (withoutEmail.length > 0) {
+            const newContacts = withoutEmail.map(c => {
+                const { email, name, phone, notes, assignee, callbackDate, ...misc } = c;
+                const contactData: any = { name, userId };
+
+                if (phone) contactData.phone = phone;
+                if (notes) contactData.notes = notes;
+                if (assignee) contactData.assignee = assignee;
+                if (callbackDate) contactData.callbackDate = new Date(callbackDate);
+
+                if (Object.keys(misc).length > 0) {
+                    contactData.misc = misc;
+                }
+
+                contactData.dateAdded = new Date();
+                return contactData;
+            });
+            const insertResult = await this.contactModel.insertMany(newContacts);
+            results.inserted += insertResult.length;
+        }
+
+        return results;
     }
 
-    async update(id: string, updateData: any) {
-        return this.contactModel.findByIdAndUpdate(id, updateData, { new: true }).exec();
+    async update(userId: string, id: string, updateData: any) {
+        return this.contactModel.findOneAndUpdate({ _id: id, userId }, updateData, { new: true }).exec();
     }
 
-    async delete(id: string) {
-        return this.contactModel.findByIdAndDelete(id);
+    async delete(userId: string, id: string) {
+        return this.contactModel.findOneAndDelete({ _id: id, userId });
     }
 
-    async bulkAssign(contactIds: string[], assignee: string) {
+    async bulkAssign(userId: string, contactIds: string[], assignee: string) {
         return this.contactModel.updateMany(
-            { _id: { $in: contactIds } },
+            { _id: { $in: contactIds }, userId },
             { $set: { assignee } }
         );
     }

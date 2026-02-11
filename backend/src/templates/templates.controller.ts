@@ -1,33 +1,40 @@
 
-import { Controller, Get, Post, Body, Put, Param, Delete } from '@nestjs/common';
+import { Controller, Get, Post, Body, Put, Param, Delete, UseGuards, Req } from '@nestjs/common';
 import { TemplatesService } from './templates.service';
+import { JwtAuthGuard } from '../auth/jwt-auth.guard';
 
 @Controller('templates')
+@UseGuards(JwtAuthGuard) // Protect all routes
 export class TemplatesController {
     constructor(private readonly templatesService: TemplatesService) { }
 
     @Post()
-    create(@Body() body: { subject: string; body: string }) {
-        return this.templatesService.create(body);
+    create(@Req() req, @Body() body: { subject: string; body: string }) {
+        const userId = req.user.userId;
+        return this.templatesService.create(userId, body);
     }
 
     @Get()
-    findAll() {
-        return this.templatesService.findAll();
+    findAll(@Req() req) {
+        const userId = req.user.userId;
+        return this.templatesService.findAll(userId);
     }
 
     @Get(':id')
-    findOne(@Param('id') id: string) {
-        return this.templatesService.findOne(id);
+    findOne(@Req() req, @Param('id') id: string) {
+        const userId = req.user.userId;
+        return this.templatesService.findOne(userId, id);
     }
 
     @Put(':id')
-    update(@Param('id') id: string, @Body() body: { subject?: string; body?: string }) {
-        return this.templatesService.update(id, body);
+    update(@Req() req, @Param('id') id: string, @Body() body: { subject?: string; body?: string }) {
+        const userId = req.user.userId;
+        return this.templatesService.update(userId, id, body);
     }
 
     @Delete(':id')
-    remove(@Param('id') id: string) {
-        return this.templatesService.remove(id);
+    remove(@Req() req, @Param('id') id: string) {
+        const userId = req.user.userId;
+        return this.templatesService.remove(userId, id);
     }
 }

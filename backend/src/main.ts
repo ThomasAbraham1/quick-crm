@@ -3,12 +3,16 @@ import { NestFactory } from '@nestjs/core';
 import { AppModule } from './app.module';
 import { configure } from '@codegenie/serverless-express';
 import { Callback, Context, Handler } from 'aws-lambda';
+import * as cookieParser from 'cookie-parser';
 
 let server: Handler;
 
 async function bootstrap() {
     try {
         const app = await NestFactory.create(AppModule, { logger: ['error', 'warn', 'log'] });
+
+        // Enable cookie parser for Lambda
+        app.use(cookieParser());
 
         // Do NOT enable CORS here for Lambda - AWS Lambda Function URL handles it
         // This prevents duplicate CORS headers
@@ -48,7 +52,11 @@ export const handler: Handler = async (
 if (!process.env.LAMBDA_TASK_ROOT) {
     async function runLocal() {
         const app = await NestFactory.create(AppModule);
-        app.enableCors();
+
+        // Enable cookie parser for local dev
+        app.use(cookieParser());
+
+        app.enableCors({ origin: 'http://localhost:3003', credentials: true, methods: ['GET', 'POST', 'PUT', 'DELETE'],  });
         console.log('Backend starting locally...');
         await app.listen(3002);
         console.log('Backend is running on http://localhost:3002');

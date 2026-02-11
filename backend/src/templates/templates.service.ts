@@ -8,24 +8,24 @@ import { Template } from '../schemas/template.schema';
 export class TemplatesService {
     constructor(@InjectModel(Template.name) private templateModel: Model<Template>) { }
 
-    async create(createTemplateDto: { subject: string; body: string }) {
-        const createdTemplate = new this.templateModel(createTemplateDto);
+    async create(userId: string, createTemplateDto: { subject: string; body: string }) {
+        const createdTemplate = new this.templateModel({ ...createTemplateDto, userId });
         return createdTemplate.save();
     }
 
-    async findAll() {
-        return this.templateModel.find().exec();
+    async findAll(userId: string) {
+        return this.templateModel.find({ userId }).exec();
     }
 
-    async findOne(id: string) {
-        return this.templateModel.findById(id).exec();
+    async findOne(userId: string, id: string) {
+        return this.templateModel.findOne({ _id: id, userId }).exec();
     }
 
-    async update(id: string, updateTemplateDto: { subject?: string; body?: string }) {
-        return this.templateModel.findByIdAndUpdate(id, updateTemplateDto, { new: true }).exec();
+    async update(userId: string, id: string, updateTemplateDto: { subject?: string; body?: string }) {
+        return this.templateModel.findOneAndUpdate({ _id: id, userId }, updateTemplateDto, { new: true }).exec();
     }
 
-    async remove(id: string) {
-        return this.templateModel.findByIdAndDelete(id).exec();
+    async remove(userId: string, id: string) {
+        return this.templateModel.findOneAndDelete({ _id: id, userId }).exec();
     }
 }

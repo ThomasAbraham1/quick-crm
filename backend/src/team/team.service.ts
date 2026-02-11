@@ -8,16 +8,16 @@ import { TeamMember } from '../schemas/team.schema';
 export class TeamService {
     constructor(@InjectModel(TeamMember.name) private teamModel: Model<TeamMember>) { }
 
-    async create(createTeamDto: any): Promise<TeamMember> {
-        const createdMember = new this.teamModel(createTeamDto);
+    async create(userId: string, createTeamDto: any): Promise<TeamMember> {
+        const createdMember = new this.teamModel({ ...createTeamDto, userId });
         return createdMember.save();
     }
 
-    async findAll(): Promise<TeamMember[]> {
-        return this.teamModel.find().exec();
+    async findAll(userId: string): Promise<TeamMember[]> {
+        return this.teamModel.find({ userId }).exec();
     }
 
-    async delete(id: string): Promise<any> {
-        return this.teamModel.findByIdAndDelete(id).exec();
+    async delete(userId: string, id: string): Promise<any> {
+        return this.teamModel.findOneAndDelete({ _id: id, userId }).exec();
     }
 }

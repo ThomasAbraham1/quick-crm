@@ -24,8 +24,12 @@ const SidebarItem = ({ to, icon: Icon, label, onClick }: { to: string; icon: any
     </NavLink>
 );
 
+import { useAuth } from '../../context/useAuth';
+import { LogOut } from 'lucide-react';
+
 const Layout = () => {
     const [isSidebarOpen, setIsSidebarOpen] = useState(false);
+    const { user, logout } = useAuth();
 
     return (
         <div className="flex min-h-screen bg-gray-50 font-sans">
@@ -81,9 +85,35 @@ const Layout = () => {
                     <SidebarItem to="/campaigns" icon={BarChart3} label="Campaigns" onClick={() => setIsSidebarOpen(false)} />
                 </nav>
 
-                <div className="mt-auto px-4 py-4 bg-blue-50 rounded-xl">
-                    <div className="text-xs font-semibold text-blue-800 mb-1">PRO PLAN</div>
-                    <div className="text-xs text-blue-600">50/50 Emails Sent</div>
+                <div className="mt-auto pt-6 border-t border-gray-100">
+                    {user && (
+                        <div className="flex items-center gap-3 mb-4 px-2">
+                            {user.picture ? (
+                                <img src={user.picture} alt={user.name} className="w-8 h-8 rounded-full" />
+                            ) : (
+                                <div className="w-8 h-8 rounded-full bg-blue-100 text-blue-600 flex items-center justify-center font-bold">
+                                    {user.name.charAt(0)}
+                                </div>
+                            )}
+                            <div className="flex-1 min-w-0">
+                                <p className="text-sm font-medium text-gray-900 truncate">{user.name}</p>
+                                <p className="text-xs text-gray-500 truncate">{user.email}</p>
+                            </div>
+                        </div>
+                    )}
+
+                    <button
+                        onClick={logout}
+                        className="w-full flex items-center gap-3 px-4 py-3 rounded-xl text-gray-500 hover:bg-red-50 hover:text-red-600 transition-all duration-200"
+                    >
+                        <LogOut size={20} />
+                        <span className="font-medium">Sign Out</span>   
+                    </button>
+
+                    <div className="mt-4 px-4 py-4 bg-blue-50 rounded-xl">
+                        <div className="text-xs font-semibold text-blue-800 mb-1">PRO PLAN</div>
+                        <div className="text-xs text-blue-600">50/50 Emails Sent</div>
+                    </div>
                 </div>
             </aside>
 
