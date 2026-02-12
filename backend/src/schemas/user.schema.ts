@@ -18,6 +18,12 @@ export class User {
     @Prop()
     picture: string;
 
+    @Prop()
+    accessToken: string;
+
+    @Prop()
+    refreshToken: string;
+
     @Prop({ default: Date.now })
     createdAt: Date;
 }

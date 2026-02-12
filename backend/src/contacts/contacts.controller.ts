@@ -23,7 +23,6 @@ export class ContactsController {
     @Get()
     findAll(@Req() req) {
         const userId = req.user.userId;
-        console.log(userId)
         return this.contactsService.findAll(userId);
     }
 

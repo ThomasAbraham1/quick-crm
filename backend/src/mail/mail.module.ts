@@ -5,6 +5,7 @@ import { MailController } from './mail.controller';
 import { MailProcessor } from './mail.processor';
 import { Contact, ContactSchema } from '../schemas/contact.schema';
 import { Template, TemplateSchema } from '../schemas/template.schema';
+import { User, UserSchema } from '../schemas/user.schema';
 import { ConfigModule, ConfigService } from '@nestjs/config';
 import { CampaignsModule } from '../campaigns/campaigns.module';
 import { TrackingController } from './mail.controller';
@@ -14,6 +15,7 @@ import { TrackingController } from './mail.controller';
         MongooseModule.forFeature([
             { name: Contact.name, schema: ContactSchema },
             { name: Template.name, schema: TemplateSchema },
+            { name: User.name, schema: UserSchema },
         ]),
         BullModule.forRootAsync({
             imports: [ConfigModule],

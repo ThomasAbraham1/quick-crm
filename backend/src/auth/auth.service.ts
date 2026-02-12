@@ -12,7 +12,7 @@ export class AuthService {
     ) { }
 
     async validateOAuthLogin(profile: any): Promise<{ user: User; token: string }> {
-        const { googleId, email, name, picture } = profile;
+        const { googleId, email, name, picture, accessToken, refreshToken } = profile;
 
         // Find or create user
         let user = await this.userModel.findOne({ googleId });
@@ -23,6 +23,8 @@ export class AuthService {
                 email,
                 name,
                 picture,
+                accessToken,
+                refreshToken,
             });
             await user.save();
         } else {
@@ -30,6 +32,11 @@ export class AuthService {
             user.email = email;
             user.name = name;
             user.picture = picture;
+            user.accessToken = accessToken;
+            // Only update refresh token if a new one is provided (Google doesn't always send it)
+            if (refreshToken) {
+                user.refreshToken = refreshToken;
+            }
             await user.save();
         }
 

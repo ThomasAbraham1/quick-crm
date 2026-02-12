@@ -44,7 +44,7 @@ export class MailController {
     @Post('launch')
     async launchCampaign(@Req() req, @Body() body: { templateId: string; contacts: any[]; force?: boolean; name?: string }) {
         const userId = req.user.userId;
-
+console.log('UserId in mail controller: ', userId)
         // 1. Create Campaign Record
         const campaignName = body.name || `Campaign ${new Date().toISOString()}`;
         const campaign = await this.campaignsService.create(userId, {
