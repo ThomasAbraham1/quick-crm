@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { AlertTriangle } from 'lucide-react';
-import { useCheckCampaign, useLaunchCampaign, useSendTestEmail } from '../hooks';
+import { useCheckCampaign, useLaunchCampaign, useCreateQuickTemplate } from '../hooks';
+import toast from 'react-hot-toast';
 
 const LaunchCampaign = () => {
     const [templateId, setTemplateId] = useState(() => localStorage.getItem('campaign_templateId') || '');
@@ -10,7 +11,7 @@ const LaunchCampaign = () => {
     // TanStack Query hooks
     const checkCampaign = useCheckCampaign();
     const launchCampaign = useLaunchCampaign();
-    const sendTestEmail = useSendTestEmail();
+    const createTemplate = useCreateQuickTemplate();
 
     // Safety Modal State
     const [checkResult, setCheckResult] = useState<any>(null); // { duplicates: [], total: 0 }
@@ -44,13 +45,14 @@ const LaunchCampaign = () => {
             })) : [];
 
             if (polishedContacts.length === 0) {
-                alert('No valid contacts found in JSON');
+                toast.error('No valid contacts found in JSON');
                 setStatus('');
                 return;
             }
 
             const result = await checkCampaign.mutateAsync({
                 templateId,
+                contacts: polishedContacts, // Fixed: Pass contacts to backend
                 force: false
             });
 
@@ -67,7 +69,9 @@ const LaunchCampaign = () => {
 
         } catch (err: any) {
             console.error(err);
-            setStatus('Error: ' + err.message);
+            const errorMessage = err.response?.data?.message || err.message || 'Error checking campaign';
+            toast.error(errorMessage);
+            setStatus('Error: ' + errorMessage);
         }
     };
 
@@ -75,6 +79,7 @@ const LaunchCampaign = () => {
         try {
             setShowModal(false);
             setStatus('Launching...');
+            const toastId = toast.loading('Launching campaign...');
 
             const contacts = contactsOverride || getCleanContacts(); // Use override if passed, else re-parse
 
@@ -92,7 +97,9 @@ const LaunchCampaign = () => {
                 force
             });
 
-            setStatus(force ? '⚠️ Launched with FORCE (Duplicates included)' : '✅ Campaign Launched!');
+            const successMsg = force ? '⚠️ Launched with FORCE (Duplicates included)' : '✅ Campaign Launched!';
+            toast.success(successMsg, { id: toastId });
+            setStatus(successMsg);
 
             // Redirect to campaign detail page
             if (result.campaignId) {
@@ -102,20 +109,23 @@ const LaunchCampaign = () => {
             }
 
         } catch (err: any) {
-            setStatus('Error launching: ' + err.message);
+            const errorMessage = err.response?.data?.message || err.message || 'Error launching campaign';
+            toast.error(errorMessage);
+            setStatus('Error launching: ' + errorMessage);
         }
     };
 
     const createTestTemplate = async () => {
         try {
-            const result = await sendTestEmail.mutateAsync({
-                templateId: '',
-                recipientEmail: 'test@example.com',
-                recipientName: 'Test User'
+            const result = await createTemplate.mutateAsync({
+                subject: 'Test Campaign Template',
+                body: '<h1>This is a test template</h1><p>Created from Launch Campaign page.</p>'
             });
-            alert('Test email endpoint called. Check your backend logs for template creation.');
-        } catch (err) {
-            alert('Error creating template');
+            setTemplateId(result._id);
+            toast.success('Test template created! ID: ' + result._id);
+        } catch (err: any) {
+            const errorMessage = err.response?.data?.message || err.message || 'Error creating template';
+            toast.error(errorMessage);
         }
     }
 

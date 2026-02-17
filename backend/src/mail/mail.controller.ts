@@ -22,29 +22,51 @@ export class MailController {
     @Post('check-campaign')
     async checkCampaign(@Req() req, @Body() body: { templateId: string; contacts: any[] }) {
         const userId = req.user.userId;
-        const contactEmails = body.contacts.map(c => c.email);
+        try {
+            if (!body.contacts || !Array.isArray(body.contacts)) {
+                console.error('Missing or invalid contacts array', body);
+                return {
+                    total: 0,
+                    duplicates: [],
+                    duplicateCount: 0,
+                    newContacts: 0
+                };
+            }
 
-        // Find contacts that ALREADY have this template in history (scoped to user)
-        const duplicates = await this.contactModel.find({
-            userId,
-            email: { $in: contactEmails },
-            history: body.templateId.trim()
-        }).select('email').exec();
+            // Verify Template Exists
+            await this.validateTemplate(userId, body.templateId);
 
-        const duplicateEmails = duplicates.map(d => d.email);
+            const contactEmails = body.contacts.map(c => c.email);
 
-        return {
-            total: contactEmails.length,
-            duplicates: duplicateEmails,
-            duplicateCount: duplicateEmails.length,
-            newContacts: contactEmails.length - duplicateEmails.length
-        };
+            // Find contacts that ALREADY have this template in history (scoped to user)
+            const duplicates = await this.contactModel.find({
+                userId,
+                email: { $in: contactEmails },
+                history: body.templateId.trim()
+            }).select('email').exec();
+
+            const duplicateEmails = duplicates.map(d => d.email);
+
+            return {
+                total: contactEmails.length,
+                duplicates: duplicateEmails,
+                duplicateCount: duplicateEmails.length,
+                newContacts: contactEmails.length - duplicateEmails.length
+            };
+        } catch (error) {
+            console.error('Check Campaign Error:', error);
+            throw new Error(`Check Failed: ${error.message}`);
+        }
     }
 
     @Post('launch')
     async launchCampaign(@Req() req, @Body() body: { templateId: string; contacts: any[]; force?: boolean; name?: string }) {
         const userId = req.user.userId;
-console.log('UserId in mail controller: ', userId)
+        console.log('UserId in mail controller: ', userId)
+
+        // Verify Template Exists
+        await this.validateTemplate(userId, body.templateId);
+
         // 1. Create Campaign Record
         const campaignName = body.name || `Campaign ${new Date().toISOString()}`;
         const campaign = await this.campaignsService.create(userId, {
@@ -105,6 +127,30 @@ console.log('UserId in mail controller: ', userId)
         const t = new this.templateModel({ ...body, userId });
         return t.save();
     }
+
+    private async validateTemplate(userId: string, templateId: string) {
+        if (!templateId) {
+            throw new Error('Template ID is required');
+        }
+
+        // Basic format check (optional but good for Mongo IDs)
+        if (!templateId.match(/^[0-9a-fA-F]{24}$/)) {
+            throw new Error('Invalid Template ID format');
+        }
+
+        const template = await this.templateModel.findOne({ _id: templateId, userId }).exec();
+        if (!template) {
+            throw new Error(`Template not found (ID: ${templateId})`);
+        }
+        return template;
+    }
+
+    @Get('test')
+    async test(@Req() req, @Res() res: Response) {
+        res.send('Hello World!');
+    }
+
+
 }
 
 @Controller('track')

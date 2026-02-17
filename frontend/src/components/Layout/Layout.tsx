@@ -26,6 +26,7 @@ const SidebarItem = ({ to, icon: Icon, label, onClick }: { to: string; icon: any
 
 import { useAuth } from '../../context/useAuth';
 import { LogOut } from 'lucide-react';
+import { Toaster } from 'react-hot-toast';
 
 const Layout = () => {
     const [isSidebarOpen, setIsSidebarOpen] = useState(false);
@@ -107,7 +108,7 @@ const Layout = () => {
                         className="w-full flex items-center gap-3 px-4 py-3 rounded-xl text-gray-500 hover:bg-red-50 hover:text-red-600 transition-all duration-200"
                     >
                         <LogOut size={20} />
-                        <span className="font-medium">Sign Out</span>   
+                        <span className="font-medium">Sign Out</span>
                     </button>
 
                     {/* <div className="mt-4 px-4 py-4 bg-blue-50 rounded-xl">
@@ -120,6 +121,7 @@ const Layout = () => {
             {/* Main Content */}
             <main className="flex-1 lg:ml-64 p-4 sm:p-6 lg:p-8 mt-16 lg:mt-0 min-w-0">
                 <Outlet />
+                <Toaster position="top-right" />
             </main>
         </div>
     );

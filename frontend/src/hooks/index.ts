@@ -8,7 +8,7 @@ export { useTemplates } from './useTemplates';
 export { useCreateCampaign, useUpdateCampaign, useDeleteCampaign } from './useCampaignMutations';
 export { useCreateContact, useImportContacts, useUpdateContact, useDeleteContact } from './useContactMutations';
 export { useCreateTemplate, useUpdateTemplate, useDeleteTemplate } from './useTemplateMutations';
-export { useCheckCampaign, useLaunchCampaign, useSendTestEmail } from './useMailMutations';
+export { useCheckCampaign, useLaunchCampaign, useCreateQuickTemplate } from './useMailMutations';
 
 // Type exports
 export type { Campaign } from './useCampaigns';

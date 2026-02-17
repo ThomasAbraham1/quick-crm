@@ -1,6 +1,7 @@
 import React, { useState, useMemo } from 'react';
 import { useSearchParams } from 'react-router-dom';
 import { Upload, Trash2, Copy, Filter, Calendar, Edit, Users, User, Search, Info, UserPlus, Loader2 } from 'lucide-react';
+import toast from 'react-hot-toast';
 import ContactEditModal from '../components/Contacts/ContactEditModal';
 import TeamManagerModal from '../components/Team/TeamManagerModal';
 import { parseContactData } from '../utils/dataParser';
@@ -204,10 +205,16 @@ const ContactsPage = () => {
 
     const handleBulkDelete = async () => {
         if (!confirm(`Delete ${selectedIds.size} contacts?`)) return;
-        for (const id of selectedIds) {
-            await deleteContact.mutateAsync(id);
+        try {
+            for (const id of selectedIds) {
+                await deleteContact.mutateAsync(id);
+            }
+            setSelectedIds(new Set());
+            setRowSelection({}); // Clear table selection
+            toast.success(`Deleted ${selectedIds.size} contacts`);
+        } catch (e: any) {
+            toast.error('Failed to delete contacts');
         }
-        setSelectedIds(new Set());
     }
 
     const handleBulkAssign = async (assignee: string) => {
@@ -218,22 +225,42 @@ const ContactsPage = () => {
                 assignee
             });
             setSelectedIds(new Set());
+            setRowSelection({}); // Clear table selection
             refetch();
+            toast.success('Contacts assigned successfully');
         } catch (e) {
             console.error('Bulk assign failed:', e);
-            alert('Failed to assign contacts');
+            toast.error('Failed to assign contacts');
         }
     }
 
     const handleCopyFilteredDocs = () => {
-        console.log(rowSelection)
-        // const exportData = filteredContacts.map((c: Contact) => ({
-        //     name: c.name,
-        //     email: c.email,
-        //     phone: c.phone
-        // }));
-        // navigator.clipboard.writeText(JSON.stringify(exportData, null, 2));
-        // alert(`Copied ${exportData.length} contacts to clipboard!`);
+        const selectedRows = table.getSelectedRowModel().rows;
+
+        if (selectedRows.length === 0) {
+            toast.error('No contacts selected');
+            return;
+        }
+
+        const exportData = selectedRows.map(row => {
+            const c = row.original;
+            return {
+                name: c.name,
+                email: c.email,
+                phone: c.phone || '',
+                website: c.website || '',
+                address: c.address || ''
+            };
+        });
+
+        const jsonString = JSON.stringify(exportData, null, 2);
+
+        navigator.clipboard.writeText(jsonString).then(() => {
+            toast.success(`Copied ${exportData.length} contacts to JSON!`);
+        }).catch(err => {
+            console.error('Failed to copy: ', err);
+            toast.error('Failed to copy to clipboard');
+        });
     }
 
     const getAssigneeName = (id?: string) => {

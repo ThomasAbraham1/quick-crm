@@ -14,7 +14,7 @@ import api from '../api';
  */
 export const useCheckCampaign = () => {
     return useMutation({
-        mutationFn: async (data: { templateId: string; force: boolean }) => {
+        mutationFn: async (data: { templateId: string; contacts: any[]; force: boolean }) => {
             const response = await api.post('mail/check-campaign', data);
             return response.data;
         },
@@ -41,10 +41,17 @@ export const useLaunchCampaign = () => {
         mutationFn: async (data: {
             campaignName: string;
             templateId: string;
-            selectedContacts: string[];
+            selectedContacts: any[]; // Changed to any[] to match full contact object
             force: boolean;
         }) => {
-            const response = await api.post('mail/launch', data);
+            // Map selectedContacts to 'contacts' as expected by backend
+            const payload = {
+                name: data.campaignName,
+                templateId: data.templateId,
+                contacts: data.selectedContacts,
+                force: data.force
+            };
+            const response = await api.post('mail/launch', payload);
             return response.data;
         },
         onSuccess: () => {
@@ -56,22 +63,13 @@ export const useLaunchCampaign = () => {
 };
 
 /**
- * Mutation hook to send a test email.
- * 
- * Usage:
- * const { mutate } = useSendTestEmail();
- * mutate({ 
- *   templateId: '123', 
- *   recipientEmail: 'test@example.com', 
- *   recipientName: 'Test User' 
- * });
+ * Mutation hook to create a template quickly (used for testing/launch).
  */
-export const useSendTestEmail = () => {
+export const useCreateQuickTemplate = () => {
     return useMutation({
-        mutationFn: async (data: { templateId: string; recipientEmail: string; recipientName: string }) => {
+        mutationFn: async (data: { subject: string; body: string }) => {
             const response = await api.post('mail/template', data);
             return response.data;
         },
-        // No cache invalidation needed for test emails
     });
 };

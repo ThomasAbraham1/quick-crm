@@ -4,8 +4,8 @@ WORKDIR /usr/app
 
 COPY package.json package-lock.json ./
 
-# Install dependencies for building
-RUN npm ci
+# Install dependencies for building (use npm install to handle cross-platform optional deps)
+RUN npm install
 
 COPY . .
 
@@ -21,7 +21,7 @@ WORKDIR ${LAMBDA_TASK_ROOT}
 COPY package.json package-lock.json ./
 
 # Install only production dependencies
-RUN npm ci --only=production
+RUN npm install --only=production
 
 # Copy compiled JavaScript from builder stage (NOT main.ts)
 COPY --from=builder /usr/app/dist ./
