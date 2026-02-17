@@ -128,18 +128,18 @@ const CampaignsPage = () => {
                                         <p className="text-xs text-gray-500">Sent</p>
                                     </div>
                                     <div className="flex items-center gap-2">
-                                        <Eye size={18} className="text-green-500" />
                                         <div>
-                                            <p className="text-xs text-gray-500">Opened</p>
-                                            <p className="font-semibold text-gray-800">{campaign.openedCount}</p>
+                                            <Eye size={18} className="text-green-500" />
                                         </div>
+                                        <p className="text-xs text-gray-500">Opened</p>
+                                        <p className="font-semibold text-gray-800">{campaign.openedCount}</p>
                                     </div>
                                     <div className="flex items-center gap-2">
-                                        <BarChart3 size={18} className="text-gray-500" />
                                         <div>
-                                            <p className="text-xs text-gray-500">Failed</p>
-                                            <p className="font-semibold text-gray-800">{campaign.failedCount || 0}</p>
+                                            <BarChart3 size={18} className="text-gray-500" />
                                         </div>
+                                        <p className="text-xs text-gray-500">Failed</p>
+                                        <p className="font-semibold text-gray-800">{campaign.failedCount || 0}</p>
                                     </div>
                                 </div>
                             </div>

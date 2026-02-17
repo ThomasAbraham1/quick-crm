@@ -7,6 +7,8 @@ import TemplatesPage from './pages/TemplatesPage';
 import ContactsPage from './pages/ContactsPage';
 import CampaignsPage from './pages/CampaignsPage';
 import CampaignDetail from './pages/CampaignDetail';
+import PrivacyPolicy from './pages/PrivacyPolicy';
+import TermsOfService from './pages/TermsOfService';
 
 import Login from './pages/Login';
 
@@ -21,7 +23,10 @@ const AppRoutes = () => {
         <AuthProvider>
             <BrowserRouter>
                 <Routes>
+                    {/* Public Routes */}
                     <Route path="/login" element={<Login />} />
+                    <Route path="/privacy-policy" element={<PrivacyPolicy />} />
+                    <Route path="/terms-of-service" element={<TermsOfService />} />
 
                     {/* Protected Routes */}
                     <Route element={<ProtectedRoute />}>
@@ -39,5 +44,7 @@ const AppRoutes = () => {
         </AuthProvider>
     );
 };
+
+
 
 export default AppRoutes;
