@@ -1,44 +1,40 @@
-
-import React, { useEffect, useState } from 'react';
+import React, { useState } from 'react';
 import { Plus, Edit2, Trash2, Copy } from 'lucide-react';
 import JoditEditor from 'jodit-react';
-import api from '../api';
-
-interface Template {
-    _id: string;
-    subject: string;
-    body: string;
-}
+import { useTemplates, useCreateTemplate, useUpdateTemplate, useDeleteTemplate, type Template } from '../hooks';
 
 const TemplatesPage = () => {
-    const [templates, setTemplates] = useState<Template[]>([]);
+    // Use TanStack Query hooks instead of manual state management
+    const { data: templates = [], isLoading, error } = useTemplates();
+    const createTemplate = useCreateTemplate();
+    const updateTemplate = useUpdateTemplate();
+    const deleteTemplate = useDeleteTemplate();
+
     const [isEditing, setIsEditing] = useState(false);
     const [currentTemplate, setCurrentTemplate] = useState<Partial<Template>>({});
 
-    useEffect(() => {
-        fetchTemplates();
-    }, []);
-
-    const fetchTemplates = async () => {
-        const res = await api.get('templates');
-        setTemplates(res.data);
-    };
-
     const handleSave = async () => {
         if (currentTemplate._id) {
-            await api.put(`/templates/${currentTemplate._id}`, currentTemplate);
+            // Update existing template
+            await updateTemplate.mutateAsync({
+                id: currentTemplate._id,
+                updates: currentTemplate
+            });
         } else {
-            await api.post('templates', currentTemplate);
+            // Create new template - 'name' is required but not in the form, use subject as name
+            await createTemplate.mutateAsync({
+                name: currentTemplate.subject || 'Untitled Template',
+                subject: currentTemplate.subject || '',
+                body: currentTemplate.body || ''
+            });
         }
         setIsEditing(false);
         setCurrentTemplate({});
-        fetchTemplates();
     }
 
     const handleDelete = async (id: string) => {
         if (!confirm('Are you sure?')) return;
-        await api.delete(`templates/${id}`);
-        fetchTemplates();
+        await deleteTemplate.mutateAsync(id);
     }
 
     const handleCopyId = (id: string) => {
@@ -79,7 +75,22 @@ const TemplatesPage = () => {
                 </button>
             </div>
 
-            {isEditing ? (
+            {/* Loading state */}
+            {isLoading && (
+                <div className="text-center py-12 text-gray-500">
+                    Loading templates...
+                </div>
+            )}
+
+            {/* Error state */}
+            {error && (
+                <div className="bg-red-50 border border-red-200 text-red-700 px-4 py-3 rounded-lg">
+                    Failed to load templates. Please try again.
+                </div>
+            )}
+
+            {/* Main content - only show when not loading */}
+            {!isLoading && !error && (isEditing ? (
                 <div className="bg-white p-6 rounded-xl shadow-sm border border-gray-100 max-w-2xl">
                     <h2 className="text-lg font-semibold mb-4">{currentTemplate._id ? 'Edit Template' : 'Create Template'}</h2>
                     <div className="space-y-4">
@@ -129,7 +140,7 @@ const TemplatesPage = () => {
                     ))}
                 </div>
             )
-            }
+            )}
         </div >
     );
 };

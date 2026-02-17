@@ -12,9 +12,35 @@ export class ContactsService {
         return contact.save();
     }
 
-    async findAll(userId: string) {
-        // Explicitly cast to ObjectId to ensure match with DB
-        return this.contactModel.find({ userId: userId }).sort({ _id: -1 }).exec();
+    async findAll(userId: string, page: number = 1, limit: number = 20) {
+        // Ensure page is at least 1
+        page = Math.max(1, page);
+        limit = Math.max(1, Math.min(100, limit)); // Max 100 items per page
+
+        const skip = (page - 1) * limit;
+
+        // Get total count for pagination
+        const total = await this.contactModel.countDocuments({ userId }).exec();
+
+        // Get paginated data
+        const data = await this.contactModel
+            .find({ userId })
+            .sort({ _id: -1 })
+            .skip(skip)
+            .limit(limit)
+            .exec();
+
+        return {
+            data,
+            pagination: {
+                total,
+                page,
+                limit,
+                totalPages: Math.ceil(total / limit),
+                hasNext: page * limit < total,
+                hasPrev: page > 1
+            }
+        };
     }
 
     async bulkCreate(userId: string, contactsData: any[]) {

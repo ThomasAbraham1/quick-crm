@@ -1,22 +1,10 @@
-
-import React, { useEffect, useState, useMemo } from 'react';
-import { Upload, Trash2, Copy, Filter, Calendar, Edit, Users, User, CheckCircle, Search, Info, UserPlus, Loader2 } from 'lucide-react';
-import api from '../api';
+import React, { useState, useMemo } from 'react';
+import { Upload, Trash2, Copy, Filter, Calendar, Edit, Users, User, Search, Info, UserPlus, Loader2 } from 'lucide-react';
 import ContactEditModal from '../components/Contacts/ContactEditModal';
 import TeamManagerModal from '../components/Team/TeamManagerModal';
 import { parseContactData } from '../utils/dataParser';
-
-interface Contact {
-    _id: string;
-    email: string;
-    name: string;
-    phone?: string;
-    dateAdded?: string;
-    assignee?: string;
-    callbackDate?: string;
-    notes?: string;
-    misc?: Record<string, any>;
-}
+import { useContacts, useImportContacts, useDeleteContact, type Contact } from '../hooks';
+import api from '../api';
 
 interface TeamMember {
     _id: string;
@@ -24,7 +12,11 @@ interface TeamMember {
 }
 
 const ContactsPage = () => {
-    const [contacts, setContacts] = useState<Contact[]>([]);
+    // Use TanStack Query hooks
+    const { data: contacts = [], isLoading, error, refetch } = useContacts();
+    const importContacts = useImportContacts();
+    const deleteContact = useDeleteContact();
+
     const [teamMembers, setTeamMembers] = useState<TeamMember[]>([]);
 
     // Modals
@@ -45,15 +37,10 @@ const ContactsPage = () => {
 
     const [selectedIds, setSelectedIds] = useState<Set<string>>(new Set());
 
-    useEffect(() => {
-        fetchContacts();
+    // Fetch team on mount (can be migrated to a hook later if needed)
+    React.useEffect(() => {
         fetchTeam();
     }, []);
-
-    const fetchContacts = async () => {
-        const res = await api.get('contacts');
-        setContacts(res.data);
-    };
 
     const fetchTeam = async () => {
         try {
@@ -137,7 +124,7 @@ const ContactsPage = () => {
 
             if (parsedContacts.length === 0) {
                 setIsParsing(false);
-                alert('❌ No valid contacts found!\n\nAll businesses have websites or no valid data was found.');
+                alert('❌ No valid contacts found!\\n\\nAll businesses have websites or no valid data was found.');
                 return;
             }
 
@@ -152,18 +139,17 @@ const ContactsPage = () => {
             if (missingNameIndexes.length > 0) {
                 const positions = missingNameIndexes.map(i => `#${i + 1}`).join(', ');
                 setIsParsing(false);
-                alert(`❌ Import Failed!\n\nThe following contact(s) are missing the required "name" field:\nPositions: ${positions}\n\nPlease add a name field to all contacts before importing.`);
+                alert(`❌ Import Failed!\\n\\nThe following contact(s) are missing the required \"name\" field:\\nPositions: ${positions}\\n\\nPlease add a name field to all contacts before importing.`);
                 return;
             }
 
             setIsParsing(false);
 
-            // Import the contacts
-            await api.post('contacts/import', { contacts: parsedContacts });
+            // Import the contacts using TanStack Query mutation
+            await importContacts.mutateAsync({ contacts: parsedContacts });
             setIsImporting(false);
             setJsonInput('');
-            fetchContacts();
-            alert(`✅ Successfully imported ${parsedContacts.length} contact(s)!\n\n${parsedContacts.filter(c => !c.email).length > 0 ? `Note: ${parsedContacts.filter(c => !c.email).length} contact(s) don't have email addresses.` : ''}`);
+            alert(`✅ Successfully imported ${parsedContacts.length} contact(s)!\\n\\n${parsedContacts.filter(c => !c.email).length > 0 ? `Note: ${parsedContacts.filter(c => !c.email).length} contact(s) don't have email addresses.` : ''}`);
         } catch (e: any) {
             setIsParsing(false);
             alert('❌ Parse Error: ' + e.message);
@@ -172,8 +158,7 @@ const ContactsPage = () => {
 
     const handleDelete = async (id: string) => {
         if (!confirm('Are you sure?')) return;
-        await api.delete(`contacts/${id}`);
-        fetchContacts();
+        await deleteContact.mutateAsync(id);
     }
 
     const handleEdit = (contact: Contact) => {
@@ -190,10 +175,9 @@ const ContactsPage = () => {
     const handleBulkDelete = async () => {
         if (!confirm(`Delete ${selectedIds.size} contacts?`)) return;
         for (const id of selectedIds) {
-            await api.delete(`contacts/${id}`);
+            await deleteContact.mutateAsync(id);
         }
         setSelectedIds(new Set());
-        fetchContacts();
     }
 
     const handleBulkAssign = async (assignee: string) => {
@@ -204,7 +188,7 @@ const ContactsPage = () => {
                 assignee
             });
             setSelectedIds(new Set());
-            fetchContacts();
+            refetch();
         } catch (e) {
             console.error('Bulk assign failed:', e);
             alert('Failed to assign contacts');
@@ -226,6 +210,14 @@ const ContactsPage = () => {
         const member = teamMembers.find(m => m._id === id);
         return member ? member.name : 'Unknown';
     };
+
+    if (isLoading) {
+        return <div className="text-center py-20 text-gray-500">Loading contacts...</div>;
+    }
+
+    if (error) {
+        return <div className="text-center py-20 text-red-500">Error loading contacts</div>;
+    }
 
     return (
         <div>
@@ -348,7 +340,7 @@ const ContactsPage = () => {
                         <br />
                         <strong>CSV Example:</strong> <code>name,email,phone,website,address</code>
                         <br />
-                        <strong>JSON Example:</strong> <code>[{`{"name": "...", "email": "...", "phone": "...", "website": ""}`}]</code>
+                        <strong>JSON Example:</strong> <code>[{`{\"name\": \"...\", \"email\": \"...\", \"phone\": \"...\", \"website\": \"\"}`}]</code>
                     </p>
                     <textarea
                         className="w-full p-3 rounded-lg border border-blue-200 mb-3 h-32 font-mono text-sm focus:ring-2 focus:ring-blue-500 outline-none disabled:opacity-50 disabled:cursor-not-allowed"
@@ -515,7 +507,7 @@ const ContactsPage = () => {
                 isOpen={isEditModalOpen}
                 onClose={handleCloseEdit}
                 contact={editingContact}
-                onSave={fetchContacts}
+                onSave={refetch}
             />
 
             <TeamManagerModal

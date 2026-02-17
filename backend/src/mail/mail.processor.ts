@@ -1,4 +1,4 @@
-import { WorkerHost, Processor } from '@nestjs/bullmq';
+import { WorkerHost, Processor, OnWorkerEvent } from '@nestjs/bullmq';
 import { Job } from 'bullmq';
 import { InjectModel } from '@nestjs/mongoose';
 import { Model } from 'mongoose';
@@ -90,7 +90,6 @@ export class MailProcessor extends WorkerHost {
         body = body + trackingPixel;
 
         this.logger.log(`📧 Tracking pixel URL: ${baseUrl}/track/open?campaignId=${campaignId}&contactId=${contactId}&userId=${userId}`);
-
         try {
             await transporter.sendMail({ // Using dynamic transporter
                 from: `${user.name} <${user.email}>`, // Using User's Name and Email
@@ -122,6 +121,58 @@ export class MailProcessor extends WorkerHost {
                 await this.campaignsService.incrementFailed(userId, campaignId);
             }
             throw error; // Let BullMQ handle retry
+        }
+    }
+
+    /**
+     * Event handler that fires when a job completes successfully.
+     */
+    @OnWorkerEvent('completed')
+    async onCompleted(job: Job) {
+        this.logger.debug(`Job ${job.id} completed successfully`);
+        await this.checkCampaignCompletion(job);
+    }
+
+    /**
+     * Event handler that fires when a job fails permanently (after all retries).
+     */
+    @OnWorkerEvent('failed')
+    async onFailed(job: Job) {
+        this.logger.debug(`Job ${job.id} failed permanently`);
+        await this.checkCampaignCompletion(job);
+    }
+
+    /**
+     * Shared method to check if all emails for a campaign have been processed
+     * and mark the campaign as complete if so.
+     */
+    private async checkCampaignCompletion(job: Job) {
+        try {
+            const { campaignId, userId } = job.data;
+
+            if (!campaignId || !userId) {
+                return;
+            }
+
+            // Fetch the latest campaign stats
+            const campaign = await this.campaignsService.findOne(userId, campaignId);
+
+            if (!campaign) {
+                this.logger.warn(`Campaign ${campaignId} not found for completion check`);
+                return;
+            }
+
+            // Check if all emails have been processed (sent + failed = total)
+            const processedCount = campaign.sentCount + campaign.failedCount;
+
+            if (processedCount >= campaign.totalContacts && campaign.status !== 'completed') {
+                this.logger.log(`✅ Campaign ${campaign.name} completed: ${processedCount}/${campaign.totalContacts} processed (${campaign.sentCount} sent, ${campaign.failedCount} failed)`);
+                await this.campaignsService.markComplete(userId, campaignId);
+            } else {
+                this.logger.debug(`Campaign ${campaign.name} progress: ${processedCount}/${campaign.totalContacts} processed`);
+            }
+        } catch (error) {
+            this.logger.error('Error in campaign completion check:', error);
         }
     }
 }

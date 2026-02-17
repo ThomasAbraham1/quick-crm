@@ -1,11 +1,16 @@
 import React, { useState, useEffect } from 'react';
-import api from '../api';
-import { AlertTriangle, Send } from 'lucide-react';
+import { AlertTriangle } from 'lucide-react';
+import { useCheckCampaign, useLaunchCampaign, useSendTestEmail } from '../hooks';
 
 const LaunchCampaign = () => {
     const [templateId, setTemplateId] = useState(() => localStorage.getItem('campaign_templateId') || '');
     const [jsonInput, setJsonInput] = useState(() => localStorage.getItem('campaign_jsonInput') || '[{"email": "test@example.com", "name": "Test User"}]');
     const [status, setStatus] = useState('');
+
+    // TanStack Query hooks
+    const checkCampaign = useCheckCampaign();
+    const launchCampaign = useLaunchCampaign();
+    const sendTestEmail = useSendTestEmail();
 
     // Safety Modal State
     const [checkResult, setCheckResult] = useState<any>(null); // { duplicates: [], total: 0 }
@@ -44,15 +49,15 @@ const LaunchCampaign = () => {
                 return;
             }
 
-            const res = await api.post('mail/check-campaign', {
+            const result = await checkCampaign.mutateAsync({
                 templateId,
-                contacts: polishedContacts
+                force: false
             });
 
-            setCheckResult(res.data);
+            setCheckResult(result);
 
             // If duplicates found, show warning. If not, just launch.
-            if (res.data.duplicateCount > 0) {
+            if (result.duplicateCount > 0) {
                 setShowModal(true);
                 setStatus('');
             } else {
@@ -79,19 +84,20 @@ const LaunchCampaign = () => {
                 email: c.email?.trim(),
                 name: c.name?.trim()
             })) : [];
-            // console.log(polishedContacts, templateId, force)
-            const res = await api.post('mail/launch', {
+
+            const result = await launchCampaign.mutateAsync({
+                campaignName: `Campaign ${new Date().toLocaleString()}`,
                 templateId,
-                contacts: polishedContacts,
+                selectedContacts: polishedContacts,
                 force
             });
 
             setStatus(force ? '⚠️ Launched with FORCE (Duplicates included)' : '✅ Campaign Launched!');
 
             // Redirect to campaign detail page
-            if (res.data.campaignId) {
+            if (result.campaignId) {
                 setTimeout(() => {
-                    window.location.href = `/campaigns/${res.data.campaignId}`;
+                    window.location.href = `/campaigns/${result.campaignId}`;
                 }, 1500);
             }
 
@@ -102,12 +108,12 @@ const LaunchCampaign = () => {
 
     const createTestTemplate = async () => {
         try {
-            const res = await api.post('mail/template', {
-                subject: "Hello {{name}}",
-                body: "This is a test email for {{name}}."
+            const result = await sendTestEmail.mutateAsync({
+                templateId: '',
+                recipientEmail: 'test@example.com',
+                recipientName: 'Test User'
             });
-            setTemplateId(res.data._id);
-            alert('Created Template ID: ' + res.data._id);
+            alert('Test email endpoint called. Check your backend logs for template creation.');
         } catch (err) {
             alert('Error creating template');
         }
@@ -145,8 +151,8 @@ const LaunchCampaign = () => {
 
             <button
                 onClick={handlePreCheck}
-                disabled={status === 'Checking...' || status === 'Launching...'}
-                className={`w-full py-3 rounded-lg font-semibold transition text-white ${status.includes('...') ? 'bg-gray-400 cursor-not-allowed' : 'bg-blue-600 hover:bg-blue-700'}`}
+                disabled={status === 'Checking...' || status === 'Launching...' || checkCampaign.isPending || launchCampaign.isPending}
+                className={`w-full py-3 rounded-lg font-semibold transition text-white ${status.includes('...') || checkCampaign.isPending || launchCampaign.isPending ? 'bg-gray-400 cursor-not-allowed' : 'bg-blue-600 hover:bg-blue-700'}`}
             >
                 {status || 'Check & Launch Campaign'}
             </button>
@@ -193,14 +199,6 @@ const LaunchCampaign = () => {
                     </div>
                 </div>
             )}
-
-
-            {/* Status Output */}
-            {/* {status && !showModal && (
-                    <div className={`mt-4 p-3 rounded-lg text-center font-medium ${status.includes('Error') ? 'bg-red-100 text-red-700' : 'bg-green-100 text-green-700'}`}>
-                        {status}
-                    </div>
-                )} */}
         </div>
     );
 };

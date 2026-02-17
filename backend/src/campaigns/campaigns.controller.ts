@@ -1,5 +1,5 @@
 
-import { Controller, Get, Param, UseGuards, Req } from '@nestjs/common';
+import { Controller, Get, Param, Query, UseGuards, Req } from '@nestjs/common';
 import { CampaignsService } from './campaigns.service';
 import { JwtAuthGuard } from '../auth/jwt-auth.guard';
 
@@ -9,9 +9,11 @@ export class CampaignsController {
     constructor(private campaignsService: CampaignsService) { }
 
     @Get()
-    async getAll(@Req() req) {
+    async getAll(@Req() req, @Query('page') page?: string, @Query('limit') limit?: string) {
         const userId = req.user.userId;
-        return this.campaignsService.findAll(userId);
+        const pageNum = parseInt(page) || 1;
+        const limitNum = parseInt(limit) || 20;
+        return this.campaignsService.findAll(userId, pageNum, limitNum);
     }
 
     @Get(':id')

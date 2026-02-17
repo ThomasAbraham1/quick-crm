@@ -1,51 +1,20 @@
-import React, { useEffect, useState } from 'react';
+import React from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
-import api from '../api';
 import { ArrowLeft, Mail, Eye, XCircle, Clock } from 'lucide-react';
-
-interface Campaign {
-    _id: string;
-    name: string;
-    templateId: string;
-    totalContacts: number;
-    sentCount: number;
-    openedCount: number;
-    failedCount: number;
-    status: string;
-    createdAt: string;
-}
+import { useCampaign } from '../hooks';
 
 const CampaignDetail = () => {
     const { id } = useParams();
     const navigate = useNavigate();
-    const [campaign, setCampaign] = useState<Campaign | null>(null);
-    const [loading, setLoading] = useState(true);
 
-    useEffect(() => {
-        if (id) {
-            fetchCampaign();
-            // Poll every 3 seconds for live updates
-            const interval = setInterval(fetchCampaign, 3000);
-            return () => clearInterval(interval);
-        }
-    }, [id]);
+    // useCampaign has built-in polling every 3 seconds! No need for manual setInterval
+    const { data: campaign, isLoading, error } = useCampaign(id);
 
-    const fetchCampaign = async () => {
-        try {
-            const res = await api.get(`campaigns/${id}`);
-            setCampaign(res.data);
-            setLoading(false);
-        } catch (err) {
-            console.error('Error fetching campaign:', err);
-            setLoading(false);
-        }
-    };
-
-    if (loading) {
+    if (isLoading) {
         return <div className="text-center py-20 text-gray-500">Loading campaign...</div>;
     }
 
-    if (!campaign) {
+    if (error || !campaign) {
         return <div className="text-center py-20 text-gray-500">Campaign not found</div>;
     }
 

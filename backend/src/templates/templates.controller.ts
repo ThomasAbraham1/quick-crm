@@ -1,5 +1,5 @@
 
-import { Controller, Get, Post, Body, Put, Param, Delete, UseGuards, Req } from '@nestjs/common';
+import { Controller, Get, Post, Body, Put, Param, Delete, Query, UseGuards, Req } from '@nestjs/common';
 import { TemplatesService } from './templates.service';
 import { JwtAuthGuard } from '../auth/jwt-auth.guard';
 
@@ -15,9 +15,11 @@ export class TemplatesController {
     }
 
     @Get()
-    findAll(@Req() req) {
+    findAll(@Req() req, @Query('page') page?: string, @Query('limit') limit?: string) {
         const userId = req.user.userId;
-        return this.templatesService.findAll(userId);
+        const pageNum = parseInt(page) || 1;
+        const limitNum = parseInt(limit) || 20;
+        return this.templatesService.findAll(userId, pageNum, limitNum);
     }
 
     @Get(':id')

@@ -25,7 +25,6 @@ export class GoogleStrategy extends PassportStrategy(Strategy, 'google') {
         console.log('Google Strategy Validate:');
         console.log('  - Access Token:', accessToken ? 'PRESENT' : 'MISSING');
         console.log('  - Refresh Token:', refreshToken ? 'PRESENT' : 'MISSING');
-
         const { id, name, emails, photos } = profile;
         const user = {
             googleId: id,

@@ -13,8 +13,32 @@ export class CampaignsService {
         return campaign.save();
     }
 
-    async findAll(userId: string) {
-        return this.campaignModel.find({ userId }).sort({ createdAt: -1 }).exec();
+    async findAll(userId: string, page: number = 1, limit: number = 20) {
+        page = Math.max(1, page);
+        limit = Math.max(1, Math.min(100, limit));
+
+        const skip = (page - 1) * limit;
+
+        const total = await this.campaignModel.countDocuments({ userId }).exec();
+
+        const data = await this.campaignModel
+            .find({ userId })
+            .sort({ createdAt: -1 })
+            .skip(skip)
+            .limit(limit)
+            .exec();
+
+        return {
+            data,
+            pagination: {
+                total,
+                page,
+                limit,
+                totalPages: Math.ceil(total / limit),
+                hasNext: page * limit < total,
+                hasPrev: page > 1
+            }
+        };
     }
 
     async findOne(userId: string, id: string) {

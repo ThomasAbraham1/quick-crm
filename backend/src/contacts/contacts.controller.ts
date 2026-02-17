@@ -1,5 +1,5 @@
 
-import { Controller, Get, Post, Put, Body, Delete, Param, UseGuards, Req } from '@nestjs/common';
+import { Controller, Get, Post, Put, Body, Delete, Param, Query, UseGuards, Req } from '@nestjs/common';
 import { ContactsService } from './contacts.service';
 import { JwtAuthGuard } from '../auth/jwt-auth.guard';
 
@@ -21,9 +21,11 @@ export class ContactsController {
     }
 
     @Get()
-    findAll(@Req() req) {
+    findAll(@Req() req, @Query('page') page?: string, @Query('limit') limit?: string) {
         const userId = req.user.userId;
-        return this.contactsService.findAll(userId);
+        const pageNum = parseInt(page) || 1;
+        const limitNum = parseInt(limit) || 20;
+        return this.contactsService.findAll(userId, pageNum, limitNum);
     }
 
     @Put('bulk-assign')

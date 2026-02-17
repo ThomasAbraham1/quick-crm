@@ -13,8 +13,31 @@ export class TemplatesService {
         return createdTemplate.save();
     }
 
-    async findAll(userId: string) {
-        return this.templateModel.find({ userId }).exec();
+    async findAll(userId: string, page: number = 1, limit: number = 20) {
+        page = Math.max(1, page);
+        limit = Math.max(1, Math.min(100, limit));
+
+        const skip = (page - 1) * limit;
+
+        const total = await this.templateModel.countDocuments({ userId }).exec();
+
+        const data = await this.templateModel
+            .find({ userId })
+            .skip(skip)
+            .limit(limit)
+            .exec();
+
+        return {
+            data,
+            pagination: {
+                total,
+                page,
+                limit,
+                totalPages: Math.ceil(total / limit),
+                hasNext: page * limit < total,
+                hasPrev: page > 1
+            }
+        };
     }
 
     async findOne(userId: string, id: string) {
