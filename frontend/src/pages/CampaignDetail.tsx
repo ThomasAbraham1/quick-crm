@@ -98,12 +98,16 @@ const CampaignDetail = () => {
 
             {/* Status Badge */}
             <div className="flex items-center gap-2">
-                <span className="text-sm text-gray-600">Status:</span>
-                <span className={`px-3 py-1 rounded-full text-xs font-semibold ${campaign.status === 'completed'
-                    ? 'bg-green-100 text-green-700'
-                    : 'bg-yellow-100 text-yellow-700'
+                <span className="text-gray-600 font-medium">Status:</span>
+                <span className={`px-4 py-2 rounded-full text-sm font-semibold ${campaign.status === 'completed' ? 'bg-green-100 text-green-700' :
+                        campaign.status === 'failed' ? 'bg-red-100 text-red-700' :
+                            campaign.status === 'completed_with_failures' ? 'bg-orange-100 text-orange-700' :
+                                'bg-yellow-100 text-yellow-700'
                     }`}>
-                    {campaign.status === 'running' ? '🔄 Running' : '✅ Completed'}
+                    {campaign.status === 'running' ? '🔄 Running' :
+                        campaign.status === 'failed' ? '❌ Failed' :
+                            campaign.status === 'completed_with_failures' ? '⚠️ Completed with Failures' :
+                                '✅ Completed'}
                 </span>
             </div>
         </div>

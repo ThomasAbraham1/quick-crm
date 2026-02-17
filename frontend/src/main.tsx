@@ -10,7 +10,7 @@ import { queryClient } from './queryClient'
 ReactDOM.createRoot(document.getElementById('root')!).render(
     <React.StrictMode>
         <QueryClientProvider client={queryClient}>
-            <ReactQueryDevtools initialIsOpen={false} />
+            {/* <ReactQueryDevtools initialIsOpen={false} /> */}
             <App />
         </QueryClientProvider>
     </React.StrictMode>,

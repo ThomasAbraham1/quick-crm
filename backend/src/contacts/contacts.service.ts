@@ -16,7 +16,6 @@ export class ContactsService {
         // Ensure page is at least 1
         page = Math.max(1, page);
         limit = Math.max(1, Math.min(100, limit)); // Max 100 items per page
-
         const skip = (page - 1) * limit;
 
         // Get total count for pagination

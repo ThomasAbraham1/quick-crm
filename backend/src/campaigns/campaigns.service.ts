@@ -46,11 +46,14 @@ export class CampaignsService {
     }
 
     async incrementSent(userId: string, id: string) {
-        return this.campaignModel.findOneAndUpdate(
+        const campaign = await this.campaignModel.findOneAndUpdate(
             { _id: id, userId },
             { $inc: { sentCount: 1 } },
             { new: true }
         );
+        // Auto-update status when emails are processed
+        await this.checkAndUpdateStatus(userId, id);
+        return campaign;
     }
 
     async incrementOpened(userId: string, id: string) {
@@ -62,11 +65,14 @@ export class CampaignsService {
     }
 
     async incrementFailed(userId: string, id: string) {
-        return this.campaignModel.findOneAndUpdate(
+        const campaign = await this.campaignModel.findOneAndUpdate(
             { _id: id, userId },
             { $inc: { failedCount: 1 } },
             { new: true }
         );
+        // Auto-update status when emails are processed
+        await this.checkAndUpdateStatus(userId, id);
+        return campaign;
     }
 
     async markComplete(userId: string, id: string) {
@@ -75,5 +81,47 @@ export class CampaignsService {
             { status: 'completed' },
             { new: true }
         );
+    }
+
+    /**
+     * Automatically checks and updates campaign status based on completion
+     * Called after each email is sent or fails
+     */
+    private async checkAndUpdateStatus(userId: string, id: string) {
+        const campaign = await this.findOne(userId, id);
+
+        if (!campaign) return;
+
+        const processed = campaign.sentCount + campaign.failedCount;
+
+        // Only update status if campaign is complete
+        if (processed >= campaign.totalContacts && campaign.status === 'running') {
+            let newStatus: string;
+
+            if (campaign.failedCount === campaign.totalContacts) {
+                // All emails failed
+                newStatus = 'failed';
+            } else if (campaign.failedCount === 0) {
+                // All emails sent successfully
+                newStatus = 'completed';
+            } else {
+                // Partial failure - some sent, some failed
+                const failureRate = (campaign.failedCount / campaign.totalContacts) * 100;
+
+                if (failureRate >= 50) {
+                    // More than 50% failed - consider it mostly failed
+                    newStatus = 'failed';
+                } else {
+                    // Less than 50% failed - completed with some failures
+                    newStatus = 'completed_with_failures';
+                }
+            }
+
+            await this.campaignModel.findOneAndUpdate(
+                { _id: id, userId },
+                { status: newStatus },
+                { new: true }
+            );
+        }
     }
 }

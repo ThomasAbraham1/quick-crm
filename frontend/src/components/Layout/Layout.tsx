@@ -110,10 +110,10 @@ const Layout = () => {
                         <span className="font-medium">Sign Out</span>   
                     </button>
 
-                    <div className="mt-4 px-4 py-4 bg-blue-50 rounded-xl">
+                    {/* <div className="mt-4 px-4 py-4 bg-blue-50 rounded-xl">
                         <div className="text-xs font-semibold text-blue-800 mb-1">PRO PLAN</div>
                         <div className="text-xs text-blue-600">50/50 Emails Sent</div>
-                    </div>
+                    </div> */}
                 </div>
             </aside>
 

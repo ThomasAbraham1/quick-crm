@@ -62,6 +62,49 @@ const TemplatesPage = () => {
         ]
     }), []);
 
+    if (isLoading) {
+        return (
+            <div>
+                <div className="flex justify-between items-center mb-6">
+                    <h1 className="text-2xl font-bold text-gray-800">Email Templates</h1>
+                    <div className="h-10 w-36 bg-gray-200 rounded-lg animate-pulse"></div>
+                </div>
+                <div className="text-center py-8 mb-6">
+                    <div className="inline-flex items-center gap-2 px-4 py-2 bg-purple-50 text-purple-600 rounded-full text-sm font-medium">
+                        <div className="w-4 h-4 border-2 border-purple-600 border-t-transparent rounded-full animate-spin"></div>
+                        Loading your templates...
+                    </div>
+                </div>
+                <div className="grid gap-4">
+                    {[...Array(3)].map((_, i) => (
+                        <div key={i} className="bg-white p-6 rounded-xl border border-gray-200 animate-pulse">
+                            <div className="flex justify-between items-start mb-4">
+                                <div className="flex-1">
+                                    <div className="h-6 bg-gray-200 rounded w-2/5 mb-2"></div>
+                                    <div className="h-4 bg-gray-200 rounded w-3/5"></div>
+                                </div>
+                                <div className="flex gap-2">
+                                    <div className="h-8 w-8 bg-gray-200 rounded"></div>
+                                    <div className="h-8 w-8 bg-gray-200 rounded"></div>
+                                    <div className="h-8 w-8 bg-gray-200 rounded"></div>
+                                </div>
+                            </div>
+                            <div className="space-y-2">
+                                <div className="h-3 bg-gray-200 rounded w-full"></div>
+                                <div className="h-3 bg-gray-200 rounded w-4/5"></div>
+                                <div className="h-3 bg-gray-200 rounded w-3/5"></div>
+                            </div>
+                        </div>
+                    ))}
+                </div>
+            </div>
+        );
+    }
+
+    if (error) {
+        return <div className="text-center py-20 text-red-500">Error loading templates</div>;
+    }
+
     return (
         <div>
             <div className="flex justify-between items-center mb-8">
@@ -75,21 +118,7 @@ const TemplatesPage = () => {
                 </button>
             </div>
 
-            {/* Loading state */}
-            {isLoading && (
-                <div className="text-center py-12 text-gray-500">
-                    Loading templates...
-                </div>
-            )}
-
-            {/* Error state */}
-            {error && (
-                <div className="bg-red-50 border border-red-200 text-red-700 px-4 py-3 rounded-lg">
-                    Failed to load templates. Please try again.
-                </div>
-            )}
-
-            {/* Main content - only show when not loading */}
+            {/* No templates yet */}
             {!isLoading && !error && (isEditing ? (
                 <div className="bg-white p-6 rounded-xl shadow-sm border border-gray-100 max-w-2xl">
                     <h2 className="text-lg font-semibold mb-4">{currentTemplate._id ? 'Edit Template' : 'Create Template'}</h2>

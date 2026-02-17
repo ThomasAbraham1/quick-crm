@@ -1,10 +1,22 @@
 import React, { useState, useMemo } from 'react';
+import { useSearchParams } from 'react-router-dom';
 import { Upload, Trash2, Copy, Filter, Calendar, Edit, Users, User, Search, Info, UserPlus, Loader2 } from 'lucide-react';
 import ContactEditModal from '../components/Contacts/ContactEditModal';
 import TeamManagerModal from '../components/Team/TeamManagerModal';
 import { parseContactData } from '../utils/dataParser';
 import { useContacts, useImportContacts, useDeleteContact, type Contact } from '../hooks';
 import api from '../api';
+import {
+    useReactTable,
+    getCoreRowModel,
+    getSortedRowModel,
+    getFilteredRowModel,
+    flexRender,
+    SortingState,
+    RowSelectionState,
+    getPaginationRowModel,
+} from '@tanstack/react-table';
+import { createContactColumns } from '../components/Contacts/ContactTableColumns';
 
 interface TeamMember {
     _id: string;
@@ -12,8 +24,16 @@ interface TeamMember {
 }
 
 const ContactsPage = () => {
-    // Use TanStack Query hooks
-    const { data: contacts = [], isLoading, error, refetch } = useContacts();
+    // URL Search Params for shareable pagination
+    const [searchParams, setSearchParams] = useSearchParams();
+    const page = parseInt(searchParams.get('page') || '1', 10);
+    const limit = parseInt(searchParams.get('limit') || '20', 10);
+
+    // Use TanStack Query hooks with pagination
+    const { data, isLoading, isFetching, error, refetch } = useContacts(page, limit);
+    const contacts = data?.data || [];
+    const pagination = data?.pagination;
+
     const importContacts = useImportContacts();
     const deleteContact = useDeleteContact();
 
@@ -35,12 +55,22 @@ const ContactsPage = () => {
     const [filterCallback, setFilterCallback] = useState(''); // 'today', 'overdue', 'future'
     const [searchQuery, setSearchQuery] = useState('');
 
+    // Keep selectedIds for bulk operations compatibility
     const [selectedIds, setSelectedIds] = useState<Set<string>>(new Set());
+
+    // TanStack Table State
+    const [sorting, setSorting] = useState<SortingState>([]);
+    const [rowSelection, setRowSelection] = useState<RowSelectionState>({});
 
     // Fetch team on mount (can be migrated to a hook later if needed)
     React.useEffect(() => {
         fetchTeam();
     }, []);
+
+    // Scroll to top when page changes (prevents scroll jumping during pagination)
+    React.useEffect(() => {
+        window.scrollTo({ top: 0, behavior: 'smooth' });
+    }, [page]);
 
     const fetchTeam = async () => {
         try {
@@ -56,7 +86,7 @@ const ContactsPage = () => {
         // Search
         if (searchQuery) {
             const lower = searchQuery.toLowerCase();
-            result = result.filter(c =>
+            result = result.filter((c: Contact) =>
                 c.name?.toLowerCase().includes(lower) ||
                 c.email?.toLowerCase().includes(lower)
             );
@@ -65,7 +95,7 @@ const ContactsPage = () => {
         // Date Added
         if (filterDate) {
             const filterTime = new Date(filterDate).getTime();
-            result = result.filter(c => {
+            result = result.filter((c: Contact) => {
                 if (!c.dateAdded) return false;
                 return new Date(c.dateAdded).getTime() >= filterTime;
             });
@@ -74,16 +104,16 @@ const ContactsPage = () => {
         // Assignee
         if (filterAssignee) {
             if (filterAssignee === 'unassigned') {
-                result = result.filter(c => !c.assignee);
+                result = result.filter((c: Contact) => !c.assignee);
             } else {
-                result = result.filter(c => c.assignee === filterAssignee);
+                result = result.filter((c: Contact) => c.assignee === filterAssignee);
             }
         }
 
         // Callback Status
         if (filterCallback) {
             const todayStr = new Date().toISOString().split('T')[0];
-            result = result.filter(c => {
+            result = result.filter((c: Contact) => {
                 if (!c.callbackDate) return false;
                 const cDate = c.callbackDate.split('T')[0];
                 if (filterCallback === 'today') return cDate === todayStr;
@@ -101,7 +131,7 @@ const ContactsPage = () => {
         if (selectedIds.size === filteredContacts.length) {
             setSelectedIds(new Set());
         } else {
-            setSelectedIds(new Set(filteredContacts.map(c => c._id)));
+            setSelectedIds(new Set(filteredContacts.map((c: Contact) => c._id)));
         }
     };
 
@@ -196,28 +226,58 @@ const ContactsPage = () => {
     }
 
     const handleCopyFilteredDocs = () => {
-        const exportData = filteredContacts.map(c => ({
-            name: c.name,
-            email: c.email,
-            phone: c.phone
-        }));
-        navigator.clipboard.writeText(JSON.stringify(exportData, null, 2));
-        alert(`Copied ${exportData.length} contacts to clipboard!`);
+        console.log(rowSelection)
+        // const exportData = filteredContacts.map((c: Contact) => ({
+        //     name: c.name,
+        //     email: c.email,
+        //     phone: c.phone
+        // }));
+        // navigator.clipboard.writeText(JSON.stringify(exportData, null, 2));
+        // alert(`Copied ${exportData.length} contacts to clipboard!`);
     }
 
     const getAssigneeName = (id?: string) => {
-        if (!id) return null;
+        if (!id) return undefined;
         const member = teamMembers.find(m => m._id === id);
         return member ? member.name : 'Unknown';
     };
 
-    if (isLoading) {
-        return <div className="text-center py-20 text-gray-500">Loading contacts...</div>;
-    }
+    // Create TanStack Table columns with callbacks
+    const columns = useMemo(
+        () => createContactColumns({
+            handleEdit,
+            handleDelete,
+            getAssigneeName,
+        }),
+        [teamMembers] // Recreate when team members change
+    );
 
-    if (error) {
-        return <div className="text-center py-20 text-red-500">Error loading contacts</div>;
-    }
+    // Initialize TanStack Table
+    const table = useReactTable({
+        data: filteredContacts,
+        columns,
+        state: {
+            sorting,
+            rowSelection,
+        },
+        manualPagination: true,
+        onSortingChange: setSorting,
+        onRowSelectionChange: setRowSelection,
+        getCoreRowModel: getCoreRowModel(),
+        getSortedRowModel: getSortedRowModel(),
+        getPaginationRowModel: getPaginationRowModel(),
+        getFilteredRowModel: getFilteredRowModel(),
+        enableRowSelection: true,
+        getRowId: (row) => row._id, // Use _id as row ID
+    });
+
+    // Sync TanStack row selection with selectedIds for bulk operations
+    React.useEffect(() => {
+        const selectedRows = table.getSelectedRowModel().rows;
+        setSelectedIds(new Set(selectedRows.map(r => r.original._id)));
+    }, [rowSelection, table]);
+
+    // DON'T return early for loading - show skeleton in table instead to prevent page flash
 
     return (
         <div>
@@ -382,115 +442,105 @@ const ContactsPage = () => {
                 </div>
             )}
 
-            {/* Table */}
-            <div className="bg-white rounded-xl border border-gray-100 shadow-sm">
-                <div className="overflow-x-auto lg:overflow-x-visible">
+            {/* Main Table */}
+            <div className="bg-white rounded-xl shadow-sm border border-gray-100 overflow-hidden">
+                {/* Loading banner for initial load */}
+                {isLoading && (
+                    <div className="bg-gradient-to-r from-blue-50 to-indigo-50 border-b border-blue-100 px-6 py-3">
+                        <div className="flex items-center gap-3">
+                            <div className="w-4 h-4 border-2 border-blue-600 border-t-transparent rounded-full animate-spin"></div>
+                            <span className="text-sm font-medium text-blue-900">
+                                Loading your contacts...
+                            </span>
+                        </div>
+                    </div>
+                )}
+
+                <div className="overflow-x-auto overflow-y-auto flex-1" style={{ maxHeight: 'calc(100vh - 320px)' }}>
                     <table className="w-full text-left">
-                        <thead className="bg-gray-50 border-b border-gray-100">
-                            <tr>
-                                <th className="px-3 sm:px-6 py-3 sm:py-4 w-10">
-                                    <input
-                                        type="checkbox"
-                                        checked={filteredContacts.length > 0 && selectedIds.size === filteredContacts.length}
-                                        onChange={toggleSelectAll}
-                                    />
-                                </th>
-                                <th className="px-3 sm:px-6 py-3 sm:py-4 text-xs font-semibold text-gray-500 uppercase whitespace-nowrap">Contact</th>
-                                <th className="px-3 sm:px-6 py-3 sm:py-4 text-xs font-semibold text-gray-500 uppercase whitespace-nowrap">Phone</th>
-                                <th className="px-3 sm:px-6 py-3 sm:py-4 text-xs font-semibold text-gray-500 uppercase whitespace-nowrap">Notes</th>
-                                <th className="px-3 sm:px-6 py-3 sm:py-4 text-xs font-semibold text-gray-500 uppercase whitespace-nowrap">Assignee</th>
-                                <th className="px-3 sm:px-6 py-3 sm:py-4 text-xs font-semibold text-gray-500 uppercase whitespace-nowrap">Callback</th>
-                                <th className="px-3 sm:px-6 py-3 sm:py-4 text-xs font-semibold text-gray-500 uppercase text-right whitespace-nowrap">Actions</th>
-                            </tr>
-                        </thead>
-                        <tbody className="divide-y divide-gray-50">
-                            {filteredContacts.map(c => (
-                                <tr key={c._id} className={`hover:bg-gray-50/50 transition ${selectedIds.has(c._id) ? 'bg-blue-50/30' : ''}`}>
-                                    <td className="px-3 sm:px-6 py-3 sm:py-4">
-                                        <input
-                                            type="checkbox"
-                                            checked={selectedIds.has(c._id)}
-                                            onChange={() => toggleSelect(c._id)}
-                                        />
-                                    </td>
-                                    <td className="px-3 sm:px-6 py-3 sm:py-4">
-                                        <div className="font-medium text-sm text-gray-900 whitespace-nowrap">{c.name || 'Unknown'}</div>
-                                        <div className="text-xs text-gray-500 truncate max-w-[200px]">{c.email}</div>
-                                    </td>
-                                    <td className="px-3 sm:px-6 py-3 sm:py-4">
-                                        {c.phone ? (
-                                            <span className="text-sm text-gray-700 whitespace-nowrap">{c.phone}</span>
-                                        ) : <span className="text-gray-400 text-xs">-</span>}
-                                    </td>
-                                    <td className="px-3 sm:px-6 py-3 sm:py-4 whitespace-nowrap">
-                                        {c.notes ? (
-                                            <div className="group relative inline-block">
-                                                <span className="text-xs text-gray-700 cursor-help">
-                                                    {c.notes.length > 40 ? c.notes.substring(0, 40) + '...' : c.notes}
-                                                </span>
-                                                {c.notes.length > 40 && (
-                                                    <div className="invisible group-hover:visible opacity-0 group-hover:opacity-100 transition-opacity duration-200 absolute z-50 left-0 bottom-full mb-2 bg-gray-900 text-white text-xs rounded-lg p-3 shadow-xl w-64 pointer-events-none whitespace-normal">
-                                                        {c.notes}
-                                                        <div className="absolute -bottom-1 left-4 w-2 h-2 bg-gray-900 transform rotate-45"></div>
-                                                    </div>
+                        <thead className="bg-gray-50 border-b border-gray-100 sticky top-0 z-10">
+                            {table.getHeaderGroups().map(headerGroup => (
+                                <tr key={headerGroup.id}>
+                                    {headerGroup.headers.map(header => (
+                                        <th
+                                            key={header.id}
+                                            className={`px-3 sm:px-6 py-3 sm:py-4 text-left text-xs font-medium text-gray-500 uppercase tracking-wider ${header.column.getCanSort() ? 'cursor-pointer select-none' : ''
+                                                } ${(header.column.columnDef.meta as any)?.className || ''}`}
+                                            onClick={header.column.getToggleSortingHandler()}
+                                        >
+                                            <div className="flex items-center gap-2">
+                                                {flexRender(
+                                                    header.column.columnDef.header,
+                                                    header.getContext()
+                                                )}
+                                                {/* Sort indicator */}
+                                                {header.column.getCanSort() && (
+                                                    <span className="text-gray-400 text-xs">
+                                                        {{
+                                                            asc: '↑',
+                                                            desc: '↓',
+                                                        }[header.column.getIsSorted() as string] ?? '↕'}
+                                                    </span>
                                                 )}
                                             </div>
-                                        ) : <span className="text-gray-400 text-xs">-</span>}
-                                    </td>
-                                    <td className="px-3 sm:px-6 py-3 sm:py-4">
-                                        {c.assignee ? (
-                                            <div className="flex items-center gap-1.5">
-                                                <div className="w-5 h-5 rounded-full bg-indigo-100 text-indigo-700 flex items-center justify-center text-[10px] font-bold">
-                                                    {getAssigneeName(c.assignee)?.charAt(0)}
-                                                </div>
-                                                <span className="text-sm text-gray-700 whitespace-nowrap">{getAssigneeName(c.assignee)}</span>
-                                            </div>
-                                        ) : (
-                                            <span className="text-xs text-gray-400 italic">Unassigned</span>
-                                        )}
-                                    </td>
-                                    <td className="px-3 sm:px-6 py-3 sm:py-4">
-                                        {c.callbackDate ? (
-                                            <span className={`text-xs font-medium px-2 py-1 rounded-full whitespace-nowrap ${new Date(c.callbackDate) < new Date() ? 'bg-red-50 text-red-600' : 'bg-blue-50 text-blue-600'
-                                                }`}>
-                                                {new Date(c.callbackDate).toLocaleDateString()}
-                                            </span>
-                                        ) : '-'}
-                                    </td>
-                                    <td className="px-3 sm:px-6 py-3 sm:py-4 text-right">
-                                        <div className="flex justify-end gap-2 text-gray-400">
-                                            {c.misc && Object.keys(c.misc).length > 0 && (
-                                                <div className="group relative inline-block">
-                                                    <button className="hover:text-indigo-600 transition">
-                                                        <Info size={16} />
-                                                    </button>
-                                                    <div className="invisible group-hover:visible opacity-0 group-hover:opacity-100 transition-opacity duration-200 absolute z-50 right-0 top-full mt-2 bg-gray-900 text-white text-xs rounded-lg p-3 shadow-xl w-56 pointer-events-none">
-                                                        <div className="font-semibold mb-2 text-indigo-300">Additional Info</div>
-                                                        <div className="space-y-1">
-                                                            {Object.entries(c.misc).map(([key, value]) => (
-                                                                <div key={key} className="flex justify-between gap-2">
-                                                                    <span className="text-gray-400 capitalize">{key}:</span>
-                                                                    <span className="text-white font-medium">{String(value)}</span>
-                                                                </div>
-                                                            ))}
-                                                        </div>
-                                                        <div className="absolute -top-1 right-4 w-2 h-2 bg-gray-900 transform rotate-45"></div>
-                                                    </div>
-                                                </div>
-                                            )}
-                                            <button onClick={() => handleEdit(c)} className="hover:text-blue-600 transition">
-                                                <Edit size={16} />
-                                            </button>
-                                            <button onClick={() => handleDelete(c._id)} className="hover:text-red-500 transition">
-                                                <Trash2 size={16} />
-                                            </button>
+                                        </th>
+                                    ))}
+                                </tr>
+                            ))}
+                        </thead>
+                        <tbody className="divide-y divide-gray-50">
+                            {/* Loading state - show skeleton */}
+                            {isLoading && (
+                                <>
+                                    {[...Array(5)].map((_, i) => (
+                                        <tr key={`skeleton-${i}`} className="animate-pulse">
+                                            {[...Array(columns.length)].map((_, j) => (
+                                                <td key={j} className="px-3 sm:px-6 py-3 sm:py-4">
+                                                    <div className="h-4 bg-gray-200 rounded"></div>
+                                                </td>
+                                            ))}
+                                        </tr>
+                                    ))}
+                                </>
+                            )}
+
+                            {/* Error state */}
+                            {error && !isLoading && (
+                                <tr>
+                                    <td colSpan={columns.length} className="px-6 py-12 text-center text-red-500">
+                                        <div className="flex flex-col items-center gap-2">
+                                            <p className="text-sm">Error loading contacts. Please try again.</p>
                                         </div>
                                     </td>
                                 </tr>
+                            )}
+
+                            {/* Data rows - with loading overlay indicator */}
+                            {!isLoading && !error && table.getRowModel().rows.map(row => (
+                                <tr
+                                    key={row.id}
+                                    className={`hover:bg-gray-50/50 transition ${row.getIsSelected() ? 'bg-blue-50/30' : ''
+                                        } ${isFetching ? 'opacity-50' : ''}`}
+                                >
+                                    {row.getVisibleCells().map(cell => (
+                                        <td
+                                            key={cell.id}
+                                            className={`px-3 sm:px-6 py-3 sm:py-4 ${(cell.column.columnDef.meta as any)?.className || ''
+                                                }`}
+                                        >
+                                            {flexRender(
+                                                cell.column.columnDef.cell,
+                                                cell.getContext()
+                                            )}
+                                        </td>
+                                    ))}
+                                </tr>
                             ))}
-                            {filteredContacts.length === 0 && (
+
+                            {/* Empty state */}
+                            {!isLoading && !error && table.getRowModel().rows.length === 0 && (
                                 <tr>
-                                    <td colSpan={7} className="px-6 py-12 text-center text-gray-400">
+                                    <td colSpan={columns.length} className="px-6 py-12 text-center text-gray-400">
                                         <div className="flex flex-col items-center gap-2">
                                             <Filter size={24} className="opacity-20" />
                                             <p className="text-sm">No contacts found matching your filters.</p>
@@ -501,6 +551,71 @@ const ContactsPage = () => {
                         </tbody>
                     </table>
                 </div>
+
+                {/* Pagination Controls */}
+                {pagination && pagination.totalPages > 1 && (
+                    <div className="px-3 sm:px-6 py-3 sm:py-4 border-t border-gray-100 flex flex-col sm:flex-row items-center justify-between gap-3">
+                        {/* Results count - compact on mobile */}
+                        <div className="text-xs sm:text-sm text-gray-600 text-center sm:text-left">
+                            <span className="hidden sm:inline">Showing </span>
+                            <span className="font-medium">{((pagination.page - 1) * pagination.limit) + 1}</span>-
+                            <span className="font-medium">{Math.min(pagination.page * pagination.limit, pagination.total)}</span>
+                            <span className="hidden sm:inline"> of </span>
+                            <span className="sm:hidden mx-1">/</span>
+                            <span className="font-medium">{pagination.total}</span>
+                        </div>
+
+                        <div className="flex items-center gap-2">
+                            <button
+                                onClick={() => {
+                                    setSearchParams({ page: String(page - 1), limit: String(limit) });
+                                }}
+                                disabled={page <= 1}
+                                className="px-3 py-1.5 text-sm border border-gray-200 rounded-lg hover:bg-gray-50 disabled:opacity-50 disabled:cursor-not-allowed transition"
+                            >
+                                Previous
+                            </button>
+
+                            <div className="flex items-center gap-1.5 text-sm text-gray-600">
+                                <span>Page</span>
+                                <input
+                                    type="number"
+                                    min={1}
+                                    max={pagination.totalPages}
+                                    value={page}
+                                    onChange={(e) => {
+                                        const newPage = parseInt(e.target.value, 10);
+                                        // Only update if it's a valid number
+                                        if (!isNaN(newPage) && newPage >= 1 && newPage <= pagination.totalPages) {
+                                            setSearchParams({ page: String(newPage), limit: String(limit) });
+                                        }
+                                    }}
+                                    onBlur={(e) => {
+                                        // On blur, clamp to valid range if user typed invalid number
+                                        const newPage = parseInt(e.target.value, 10);
+                                        if (isNaN(newPage) || newPage < 1) {
+                                            setSearchParams({ page: '1', limit: String(limit) });
+                                        } else if (newPage > pagination.totalPages) {
+                                            setSearchParams({ page: String(pagination.totalPages), limit: String(limit) });
+                                        }
+                                    }}
+                                    className="w-16 px-2 py-1 text-center border border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                                />
+                                <span>of <span className="font-medium">{pagination.totalPages}</span></span>
+                            </div>
+
+                            <button
+                                onClick={() => {
+                                    setSearchParams({ page: String(page + 1), limit: String(limit) });
+                                }}
+                                disabled={page >= pagination.totalPages}
+                                className="px-3 py-1.5 text-sm border border-gray-200 rounded-lg hover:bg-gray-50 disabled:opacity-50 disabled:cursor-not-allowed transition"
+                            >
+                                Next
+                            </button>
+                        </div>
+                    </div>
+                )}
             </div>
 
             <ContactEditModal

@@ -25,6 +25,7 @@ export class ContactsController {
         const userId = req.user.userId;
         const pageNum = parseInt(page) || 1;
         const limitNum = parseInt(limit) || 20;
+        console.log('page:', page, '\nlimit:', limit)
         return this.contactsService.findAll(userId, pageNum, limitNum);
     }
 
