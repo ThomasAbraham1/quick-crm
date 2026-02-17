@@ -42,6 +42,30 @@ const Login = () => {
                             </svg>
                             Sign in with Google
                         </button>
+
+                        {/* Privacy Policy and Terms of Service Links */}
+                        <div className="mt-6 pt-6 border-t border-gray-200 text-center text-sm text-gray-600">
+                            <p>
+                                By continuing, you agree to our{' '}
+                                <a
+                                    href="/terms-of-service"
+                                    target="_blank"
+                                    rel="noopener noreferrer"
+                                    className="text-blue-600 hover:text-blue-700 hover:underline font-medium"
+                                >
+                                    Terms of Service
+                                </a>
+                                {' '}and{' '}
+                                <a
+                                    href="/privacy-policy"
+                                    target="_blank"
+                                    rel="noopener noreferrer"
+                                    className="text-blue-600 hover:text-blue-700 hover:underline font-medium"
+                                >
+                                    Privacy Policy
+                                </a>
+                            </p>
+                        </div>
                     </div>
                 </div>
             </div>
